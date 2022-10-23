@@ -19,4 +19,5 @@
 * Gensort algorithm study
 
 ### JeongHunP(박정훈)
-* contents
+* master/worker network research
+* Gensort algorithm study

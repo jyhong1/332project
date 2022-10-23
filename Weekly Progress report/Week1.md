@@ -12,7 +12,8 @@
 ## 3. Goal of the week for each individual member
 
 ### jyhong1(홍재영)
-* contents
+* Research about gRPC
+* Understand about ip communication
 
 ### daehuikim(김대희)
 * VM environment setting research

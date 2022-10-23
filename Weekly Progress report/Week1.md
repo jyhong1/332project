@@ -15,7 +15,8 @@
 * contents
 
 ### daehuikim(김대희)
-* contents
+* VM environment setting research
+* Gensort algorithm study
 
 ### JeongHunP(박정훈)
 * contents

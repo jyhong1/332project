@@ -41,8 +41,12 @@ we are on the way to study gensort (it will be continued)
 ```
 
 ### JeongHunP(박정훈)
-* master/worker network research
-* Gensort algorithm study
+* master/worker network research [*]
+* Gensort algorithm study [*]
+```
+Materials which will be surveyed this week will be uploaded next week's progress
+Those studies are in-progress now, so each base setup will be done in next week
+```
 
 
 ## 2. Goal of the week
@@ -63,4 +67,6 @@ we are on the way to study gensort (it will be continued)
 * scala project build study
 
 ### JeongHunP(박정훈)
-
+* gensort algorithm study
+* research additional network structure
+* implement base structure of network and setup

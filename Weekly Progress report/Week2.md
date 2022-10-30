@@ -2,8 +2,11 @@
 ## 1. Progress in the previous week
 
 ### jyhong1(홍재영)
-* Research about gRPC
-* Understand about ip communication
+* Research about gRPC [O]
+* Understand about ip communication [O]
+
+Study RPC(Remote Communication Mechanism) and overall structure of ip protocol.
+Hold seminar to share information.
 
 ### daehuikim(김대희)
 * VM environment setting research [O]
@@ -52,6 +55,8 @@ we are on the way to study gensort (it will be continued)
 ## 3. Goal of the week for each individual member
 
 ### jyhong1(홍재영)
+* Advance understanding about overall structure of the proejct
+* Produce specific plan of the project
 
 ### daehuikim(김대희)
 * gensort algorithm study

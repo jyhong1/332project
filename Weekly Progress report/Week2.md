@@ -5,8 +5,10 @@
 * Research about gRPC [O]
 * Understand about ip communication [O]
 
+```
 Study RPC(Remote Communication Mechanism) and overall structure of ip protocol.
 Hold seminar to share information.
+```
 
 ### daehuikim(김대희)
 * VM environment setting research [O]

@@ -4,3 +4,4 @@
 
 1. [Week1](./Weekly%20Progress%20report/Week1.md)
 2. [Week2](./Weekly%20Progress%20report/Week2.md)
+3. [Week3](./Weekly%20Progress%20report/Week3.md)

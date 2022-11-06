@@ -1,10 +1,12 @@
 # Week3
 ## 1. Progress in the previous week
 
-we set milestones for our projects like below.
+we set milestones for our projects like below. (*These might be changed)
 1. General setup (input data, master<=>worker communication setup)
-2. 
-3. 
+2. Find or Implement sorting libraries
+3. Implement Sampling, Partition, Shuffle stage
+4. gRPC communication error handling
+5. test and analyze output data and time
 
 ### jyhong1(홍재영)
 * Advance understanding about overall structure of the proejct [O]
@@ -38,8 +40,8 @@ we set milestones for our projects like below.
 * Make Master and Worker which has individual ip address.
 
 ### daehuikim(김대희)
-* 
-* 
+* Draw gensort architecture phases parellely.
+* study and implement general setup(MS#1)
 
 ### JeongHunP(박정훈)
 * study grpc/protobuf base structure of our project

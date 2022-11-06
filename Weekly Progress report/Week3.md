@@ -22,9 +22,9 @@ we set milestones for our projects like below.
 4. more functions [about sbt](https://www.scala-sbt.org/1.x/docs/)
 
 ### JeongHunP(박정훈)
-* gensort algorithm study
-* research additional network structure
-* implement base structure of network and setup
+* gensort algorithm study [O] - understand the workflow of the project
+* research additional network structure [O] - grpc/protobuf base study [ScalaPB](https://scalapb.github.io/)
+* implement base structure of network and setup [X] - will be done until next week
 
 ## 2. Goal of the week
 * Generate input data with small size
@@ -42,5 +42,6 @@ we set milestones for our projects like below.
 * 
 
 ### JeongHunP(박정훈)
-* 
-* 
+* study grpc/protobuf base structure of our project
+* implement basic request/response of grpc between master and workers
+* the documents will be organized and uploaded to project github files

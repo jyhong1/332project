@@ -7,8 +7,11 @@ we set milestones for our projects like below.
 3. 
 
 ### jyhong1(홍재영)
-* Advance understanding about overall structure of the proejct
-* Produce specific plan of the project
+* Advance understanding about overall structure of the proejct [O]
+- Breif understanding about Sampling, Pivoting, Sorting & Partition, Merge
+* Finished setup - Ubuntu, intellij
+* Make a test of gensort about making example data(key)
+
 
 ### daehuikim(김대희)
 * gensort algorithm study [O] - [gensort study note](/docs/gensort%20study.md)
@@ -31,8 +34,8 @@ we set milestones for our projects like below.
 ## 3. Goal of the week for each individual member
 
 ### jyhong1(홍재영)
-* 
-* 
+* Analyze about sorting method including merge.
+* Make Master and Worker which has individual ip address.
 
 ### daehuikim(김대희)
 * 

@@ -1,0 +1,6 @@
+![Input/Output](./resources/Input%2Coutput.PNG)
+![Connection](./resources/Phase1.PNG)
+![Sampling](./resources/Phase2.PNG)
+![Sorting](./resources/Phase3.PNG)
+![Partitioning](./resources/Phase4.PNG)
+![Shuffle & Merge](./resources/Phase5.PNG)

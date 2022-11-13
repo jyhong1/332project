@@ -1,0 +1,38 @@
+example/grpc
+example/grpc/**
+example/scalapb/**
+!/example/scalapb/examples
+!/example/scalapb/examples/basic
+!/example/scalapb/examples/basic/**
+
+
+*.class
+*.log
+*.swp
+
+# sbt specific
+.bsp
+.cache/
+.history/
+.lib/
+dist/*
+target/
+lib_managed/
+src_managed/
+project/boot/
+project/plugins/project/
+
+# Scala-IDE specific
+.scala_dependencies
+.worksheet
+.idea
+
+compiler-plugin/src/main/scala/scalapb/compiler/Version.scala
+e2e/project/project/Version.scala
+e2e/project/Version.scala
+e2e/.bin
+protoc-gen-scala-native-image
+docs/_site
+
+# API
+website/static/api

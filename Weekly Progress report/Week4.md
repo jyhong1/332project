@@ -13,9 +13,9 @@
 * study and implement general setup(MS#1)
 
 ### JeongHunP(박정훈)
-* study grpc/protobuf base structure of our project
-* implement basic request/response of grpc between master and workers
-* the documents will be organized and uploaded to project github files
+* study grpc/protobuf base structure of examples [O]
+* implement and upload sample ScalaPB example [ScalaPB-tutorial](https://scalapb.github.io/docs/getting-started) [O]
+* implement and upload basic request/response of grpc [ScalaPB-grpc](https://scalapb.github.io/docs/grpc) [O]
 
 ## 2. Goal of the week
 
@@ -26,3 +26,7 @@
 * Make shell script which can automatically allcoate ports.
 * Complete making command of master & slave
 * Make shell script which can divide dataset to each workers.
+
+### JeongHunP(박정훈)
+* research grpc/protobuf spec of our project
+* design and start implementing grpc base structure of our project

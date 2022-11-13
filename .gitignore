@@ -36,3 +36,6 @@ docs/_site
 
 # API
 website/static/api
+
+# etc
+.vscode/

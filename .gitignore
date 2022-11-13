@@ -1,5 +1,5 @@
-example/grpc
-example/grpc/**
+#example/grpc
+#example/grpc/**
 example/scalapb/**
 !/example/scalapb/examples
 !/example/scalapb/examples/basic

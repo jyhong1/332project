@@ -1,3 +1,54 @@
 syntax = "proto3";
 
 package network;
+
+// The greeting service definition.
+service Network {
+    // Sends a greeting
+    rpc Connection (ConnectionRequest) returns (ConnectionReply) {}
+    rpc Sampling (SamplingRequest) returns (SamplingReply) {}
+    rpc SortPartition (SortPartitionRequest) returns (SortPartitionReply) {}
+    rpc Shuffle (ShuffleRequest) returns (ShuffleReply) {}
+    rpc Merge (MergeRequest) returns (MergeReply) {}
+  }
+  enum ResultType {
+    FAILURE = 0;
+    PENDING = 1;
+    SUCCESS = 2;
+  }
+
+  message ConnectionRequest {
+    string ip = 1;
+  }
+  message ConnectionReply {
+    ResultType result = 1;
+  }
+
+  message SamplingnRequest {
+    string name = 1;
+  }
+  message SamplingReply {
+    string message = 1;
+  }
+
+  message SortPartitionRequest {
+    string name = 1;
+  }
+  message SortPartitionReply {
+    string message = 1;
+  }
+
+  message ShuffleRequest {
+    string name = 1;
+  }
+  message ShuffleReply {
+    string message = 1;
+  }
+
+  message MergeRequest {
+    string name = 1;
+  }
+  message MergeReply {
+    string message = 1;
+  }
+  

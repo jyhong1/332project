@@ -1,5 +1,5 @@
-ThisBuild / scalaVersion := "2.13.6"
-ThisBuild / organization := "com.example"
+ThisBuild / scalaVersion := "2.12.17"
+ThisBuild / organization := "postech.team.Red"
 
 lazy val settings = Seq(
   Compile / PB.targets := Seq(
@@ -31,5 +31,11 @@ lazy val master = (project in file("./master"))
 lazy val worker = (project in file("./worker"))
   .settings(
     name := "worker",
+    settings
+  )
+
+lazy val common = (project in file("./common"))
+  .settings(
+    name := "common",
     settings
   )

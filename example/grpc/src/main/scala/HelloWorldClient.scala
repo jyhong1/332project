@@ -17,7 +17,7 @@ object HelloWorldClient {
   def main(args: Array[String]): Unit = {
     val client = HelloWorldClient("localhost", 50051)
     try {
-      val user = args.headOption.getOrElse("world")
+      val user = args.headOption.getOrElse("Team Red!")
       client.greet(user)
     } finally {
       client.shutdown()

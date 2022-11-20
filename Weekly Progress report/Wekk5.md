@@ -7,7 +7,10 @@
 
 ## 1. Progress in the previous week
 ### jyhong1(홍재영)
-
+* Make shell script which can automatically allcoate ports.[O]- check port_test.sh
+* Complete making command of master & slave[In progress] - made command of master
+* Make shell script which can divide dataset to each workers.[X]
+- Workers are not ready, but made test code for generating inputs(generate_input.sh).
 
 ### daehuikim(김대희)
 * Implement Worker's Sampling methods[X]
@@ -19,10 +22,13 @@
 
 ## 2. Goal of the week
 1. Start specific development
+2. Implement master & worker communication with grpc.
 
 ## 3. Goal of the week for each individual member
 ### jyhong1(홍재영)
-
+* Check constructed VM server and how to use it.
+* Implement master & worker command on server.
+* Make a script which can divide dataset to each workers.
 
 ### daehuikim(김대희)
 * Start to implement master & worker methods.

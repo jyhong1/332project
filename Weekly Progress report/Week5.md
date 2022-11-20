@@ -1,4 +1,4 @@
-# Week4
+# Week5
 ## Feedback from progress presentation
 1. 주도적으로 개발을 리드할 사람이 정해지면 개발 속도에 더욱 탄력이 붙을 것 같다.
 2. 실제 개발과 관련된 코드를 커밋해보면서 코딩하면서 하루빨리 발생할 문제에 대해 해결해보길 바란다.
@@ -18,11 +18,14 @@
 * Plan specific data type, class & method[O]
 
 ### JeongHunP(박정훈)
-
+* Research grpc/protobuf spec of our project [O]
+* Design and start implementing grpc base structure of our project [O]
+* Make issues for dividing works to each members[O]
 
 ## 2. Goal of the week
 1. Start specific development
 2. Implement master & worker communication with grpc.
+3. Work based on issues and make use of github PR system.
 
 ## 3. Goal of the week for each individual member
 ### jyhong1(홍재영)
@@ -34,5 +37,6 @@
 * Start to implement master & worker methods.
 
 ### JeongHunP(박정훈)
-
-
+* Implement protobuf classes and network environments.
+* Implement master & worker classes.
+* Make issues/PR systems for work.

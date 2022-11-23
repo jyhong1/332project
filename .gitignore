@@ -40,3 +40,4 @@ website/static/api
 # etc
 .vscode/
 .metals/
+.bloop/

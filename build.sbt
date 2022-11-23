@@ -1,6 +1,14 @@
+/* 
+  This is information about our project build
+  Scala version = 2.12.17
+  Team name = Red
+*/
 ThisBuild / scalaVersion := "2.12.17"
 ThisBuild / organization := "postech.team.Red"
 
+/*
+  This is basic setting related to gRPC communication
+*/
 lazy val settings = Seq(
   Compile / PB.targets := Seq(
     scalapb.gen() -> (Compile / sourceManaged).value / "scalapb"
@@ -13,6 +21,10 @@ lazy val settings = Seq(
 
 val scalaTest = "org.scalatest" %% "scalatest" % "3.2.7"
 
+/*
+  From this line, we defined project directory structures.
+  root is root of the project
+*/
 lazy val root = (project in file("."))
   .settings(
     name := "gensort",
@@ -39,3 +51,4 @@ lazy val common = (project in file("./common"))
     name := "common",
     settings
   )
+

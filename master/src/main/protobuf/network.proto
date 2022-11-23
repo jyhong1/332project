@@ -1,6 +1,10 @@
 syntax = "proto3";
 
-package network;
+package messages;
+
+/*
+ service codes that express communication between master and workers
+*/
 
 service Network {
     rpc Connection (ConnectionRequest) returns (ConnectionReply) {}
@@ -8,28 +12,41 @@ service Network {
     rpc SortPartition (SortPartitionRequest) returns (SortPartitionReply) {}
     rpc Shuffle (ShuffleRequest) returns (ShuffleReply) {}
     rpc Merge (MergeRequest) returns (MergeReply) {}
+    rpc Terminate (TerminateRequest) returns (TerminateReply) {}
   }
 
   enum ResultType {
     FAILURE = 0;
-    PENDING = 1;
-    SUCCESS = 2;
+    PROGRESSING = 1;
+    PENDING = 2;
+    SUCCESS = 3;  
   }
-
+/*
+  connection phase messages
+*/
   message ConnectionRequest {
     string ip = 1;
+    int32 port = 2;
   }
   message ConnectionReply {
-    ResultType result = 1;
+    int32 id = 1;
+    ResultType result = 2;
   }
 
+/*
+  sampling phase messages
+*/
   message SamplingRequest {
+    int32 id =1;
     string name = 1;
   }
   message SamplingReply {
-    string message = 1;
+    ResultType result =1;
   }
 
+/*
+  Sort & partition phase messages
+*/
   message SortPartitionRequest {
     string name = 1;
   }
@@ -37,6 +54,9 @@ service Network {
     string message = 1;
   }
 
+/*
+  Shuffle phase messages
+*/
   message ShuffleRequest {
     string name = 1;
   }
@@ -44,10 +64,21 @@ service Network {
     string message = 1;
   }
 
+/*
+  Merge phase messages
+*/
   message MergeRequest {
     string name = 1;
   }
   message MergeReply {
     string message = 1;
   }
-  
+
+/*
+  Termination phase messages
+*/  
+  message TerminateRequest {
+    int32 id =1;
+    ResultType statu =2;
+  }
+  message TerminateReply {}

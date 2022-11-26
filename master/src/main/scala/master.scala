@@ -20,14 +20,14 @@ import io.grpc.{Server, ServerBuilder}
 import java.net.InetAddress
 
 object MasterWorkerServer {
-  private val logger = Logger.getLogger(classOf[MasterWorkerServer].getName)
+  private val logger =
+    Logger.getLogger(classOf[MasterWorkerServer].getName)
 
   def main(args: Array[String]): Unit = {
     // should be args len 1 which is master 3(num of workers)
     require(args.length == 1 && args(0).toInt >= 1 && args(0).toInt <= 10)
     val num_workers = args(0)
 
-    logger.info(InetAddress.getLocalHost.getHostAddress)
     val server = new MasterWorkerServer(ExecutionContext.global)
     server.start()
     server.blockUntilShutdown()
@@ -40,6 +40,9 @@ class MasterWorkerServer(executionContext: ExecutionContext) { self =>
   private[this] var server: Server = null
 
   private def start(): Unit = {
+    println(
+      InetAddress.getLocalHost.getHostAddress + ":" + MasterWorkerServer.port
+    )
     server = ServerBuilder
       .forPort(MasterWorkerServer.port)
       .addService(NetworkGrpc.bindService(new NetworkImpl, executionContext))
@@ -71,7 +74,7 @@ class MasterWorkerServer(executionContext: ExecutionContext) { self =>
 
   private class NetworkImpl extends NetworkGrpc.Network {
     override def connection(req: ConnectionRequest) = {
-      println(
+      MasterWorkerServer.logger.info(
         "[Connection] Request from " + req.ip + ":" + req.port + " arrived"
       )
       val reply = ConnectionReply(

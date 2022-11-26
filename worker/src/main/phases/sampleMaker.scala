@@ -5,8 +5,8 @@ import scala.io.Source
 import gensort.common.ioController
 
 
-object sampleSender {
-    def sample(inputPath: String, sampleSize: Int): List[String] = {
+object sampleMaker {
+    def sampling(inputPath: String, sampleSize: Int): List[String] = {
         try{
             val inputFiles = ioController.getFiles(inputPath)
             val bufferedSource = Source.fromFile(inputFiles.head)

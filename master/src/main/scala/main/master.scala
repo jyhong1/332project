@@ -16,7 +16,8 @@ import protos.network.{
 }
 import java.util.logging.Logger
 import scala.concurrent.{ExecutionContext, Future}
-import io.grpc.{Server, ServerBuilder}
+import io.grpc.{Server, ServerBuilder,Status}
+import io.grpc.stub.StreamObserver
 import java.net.InetAddress
 
 object MasterWorkerServer {
@@ -84,30 +85,55 @@ class MasterWorkerServer(executionContext: ExecutionContext) { self =>
       Future.successful(reply)
     }
 
-    override def merge(req: MergeRequest) = {
-      val reply = MergeReply(
-        message = "Connection complete from " + req.name
-      )
-      Future.successful(reply)
+    override def sampling(req: StreamObserver[SamplingRequest]): StreamObserver[SamplingRequest] = {
+      logger.info("[Sample] Workers tries to send samples")
+      new StreamObserver[SamplingRequest]{
+        var workerId: Int = -1
+        var samples: List[String] = List()
+
+        override def onNext(req: SamplingRequest): Unit ={
+          workerId = request.id
+          samples = request.samples
+        }
+
+        override def onError(t:Throwable): Unit = {
+          logger.warning(s"[Sample]: Worker $workerId failed to send samples: ${Status.fromThrowable(t)}")
+            throw t
+        }
+
+        override def onCompleted(): Unit = {
+          logger.info(s"[Sample]: Worker $workerId done sending samples")
+
+          replyingObserver.onNext(new SamplingReply(result = ResultType.SUCCESS))
+          replyingObserver.onCompleted
+
+        /*synchronization implementation required!*/
+
+        }
+      }
     }
-    override def sampling(req: SamplingRequest) = {
-      val reply = SamplingReply(
-        message = "Connection complete from " + req.name
-      )
-      Future.successful(reply)
-    }
-    override def shuffle(req: ShuffleRequest) = {
-      val reply = ShuffleReply(
-        message = "Connection complete from " + req.name
-      )
-      Future.successful(reply)
-    }
+
     override def sortPartition(req: SortPartitionRequest) = {
       val reply = SortPartitionReply(
         message = "Connection complete from " + req.name
       )
       Future.successful(reply)
     }
+
+    override def shuffle(req: ShuffleRequest) = {
+      val reply = ShuffleReply(
+        message = "Connection complete from " + req.name
+      )
+      Future.successful(reply)
+    }
+    
+    override def merge(req: MergeRequest) = {
+      val reply = MergeReply(
+        message = "Connection complete from " + req.name
+      )
+      Future.successful(reply)
+    }
+    
   }
 
 }

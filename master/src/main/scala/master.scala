@@ -27,7 +27,7 @@ object MasterWorkerServer {
     require(args.length == 1 && args(0).toInt >= 1 && args(0).toInt <= 10)
     val num_workers = args(0)
 
-    println(InetAddress.getLocalHost.getHostAddress)
+    logger.info(InetAddress.getLocalHost.getHostAddress)
     val server = new MasterWorkerServer(ExecutionContext.global)
     server.start()
     server.blockUntilShutdown()
@@ -71,7 +71,9 @@ class MasterWorkerServer(executionContext: ExecutionContext) { self =>
 
   private class NetworkImpl extends NetworkGrpc.Network {
     override def connection(req: ConnectionRequest) = {
-      println("[Connection] Request from" + req.ip + ":" + req.port + "arrived")
+      println(
+        "[Connection] Request from " + req.ip + ":" + req.port + " arrived"
+      )
       val reply = ConnectionReply(
         result = ResultType.SUCCESS,
         message = "Connection complete from " + req.ip

@@ -19,6 +19,14 @@ lazy val settings = Seq(
   )
 )
 
+lazy val commonAssemblySettings = Seq(
+  test in assembly := {},
+  assemblyMergeStrategy in assembly := {
+    case PathList("META-INF", xs @ _*) => MergeStrategy.discard
+    case x                             => MergeStrategy.first
+  }
+)
+
 val scalaTest = "org.scalatest" %% "scalatest" % "3.2.7"
 
 /*
@@ -28,27 +36,33 @@ val scalaTest = "org.scalatest" %% "scalatest" % "3.2.7"
 lazy val root = (project in file("."))
   .settings(
     name := "gensort",
-    settings
+    settings,
+    commonAssemblySettings
   )
   .aggregate(master, worker)
+  .dependsOn(master, worker)
 
-lazy val master = (project in file("./master"))
+lazy val master = (project in file("master"))
   .settings(
     name := "master",
     settings,
-    // mainClass in assembly := Some("dpsort.master.Main"),
+    commonAssemblySettings,
+    assembly / mainClass := Some("gensort.master.MasterWorkerServer"),
     libraryDependencies += scalaTest % Test
   )
 
-lazy val worker = (project in file("./worker"))
+lazy val worker = (project in file("worker"))
   .settings(
     name := "worker",
-    settings
+    settings,
+    commonAssemblySettings
   )
+  .dependsOn(master)
 
-lazy val common = (project in file("./common"))
+lazy val common = (project in file("common"))
   .settings(
     name := "common",
+    commonAssemblySettings,
     settings
   )
 

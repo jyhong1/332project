@@ -1,10 +1,6 @@
 syntax = "proto3";
 
-package messages;
-
-/*
- service codes that express communication between master and workers
-*/
+package protos;
 
 service Network {
     rpc Connection (ConnectionRequest) returns (ConnectionReply) {}
@@ -26,11 +22,9 @@ service Network {
 */
   message ConnectionRequest {
     string ip = 1;
-    int32 port = 2;
   }
   message ConnectionReply {
-    int32 id = 1;
-    ResultType result = 2;
+    ResultType result = 1;
   }
 
 /*

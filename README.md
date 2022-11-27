@@ -59,3 +59,4 @@
 3. [Week3](./Weekly%20Progress%20report/Week3.md)
 4. [Week4](./Weekly%20Progress%20report/Week4.md)
 5. [Week5](./Weekly%20Progress%20report/Week5.md)
+6. [Week6](./Weekly%20Progress%20report/Week6.md)

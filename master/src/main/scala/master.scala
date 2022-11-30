@@ -12,12 +12,19 @@ import protos.network.{
   SortPartitionRequest,
   SamplingReply,
   SamplingRequest,
+  FileRequest,
+  FileReply,
   ResultType
 }
 import java.util.logging.Logger
 import scala.concurrent.{ExecutionContext, Future}
 import io.grpc.{Server, ServerBuilder}
 import java.net.InetAddress
+import java.net._
+import java.io.{OutputStream, FileOutputStream, File}
+import scala.sys.process._
+import scala.io.Source
+import com.google.protobuf.ByteString
 
 object MasterWorkerServer {
   private val logger =
@@ -72,6 +79,19 @@ class MasterWorkerServer(executionContext: ExecutionContext) { self =>
     }
   }
 
+  // read input file and convert to String, Return input data into type String
+  private def getLine(): String = {
+    val inputFile = Source.fromFile("./data/input/input1")
+    var lines =
+      for {
+        line <- inputFile.getLines
+      } yield line // type of lines = <iterator>
+
+    var copyInput = lines.mkString("\n")
+    assert(!copyInput.isEmpty())
+    copyInput
+  }
+
   private class NetworkImpl extends NetworkGrpc.Network {
     override def connection(req: ConnectionRequest) = {
       MasterWorkerServer.logger.info(
@@ -79,7 +99,7 @@ class MasterWorkerServer(executionContext: ExecutionContext) { self =>
       )
       val reply = ConnectionReply(
         result = ResultType.SUCCESS,
-        message = "Connection complete from " + req.ip
+        message = "Connection complete to master from " + req.ip
       )
       Future.successful(reply)
     }
@@ -107,6 +127,14 @@ class MasterWorkerServer(executionContext: ExecutionContext) { self =>
         message = "Connection complete from " + req.name
       )
       Future.successful(reply)
+    }
+    override def fileTransfer(req: FileRequest) = {
+      val reply = FileReply(result = ResultType.SUCCESS, message = getLine())
+      Future.successful(reply)
+
+      MasterWorkerServer.logger.info(
+        "[File Transfer] Input file reply to " + req.ip + ":" + req.port + " completed"
+      )
     }
   }
 

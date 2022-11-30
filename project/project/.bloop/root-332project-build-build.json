@@ -203,7 +203,7 @@
         "platform": {
             "name": "jvm",
             "config": {
-                "home": "/home/dhkim/.cache/coursier/arc/https/github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u292-b10/OpenJDK8U-jdk_x64_linux_hotspot_8u292b10.tar.gz/jdk8u292-b10/jre",
+                "home": "/home/dhkim/.sdkman/candidates/java/8.0.345-tem/jre",
                 "options": [
                     "-Duser.dir=/home/dhkim/332project/project/project"
                 ]

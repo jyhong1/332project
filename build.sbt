@@ -27,8 +27,8 @@ lazy val root = (project in file("."))
     settings,
     commonAssemblySettings
   )
-  .aggregate(master, worker)
-  .dependsOn(master, worker)
+  .aggregate(master, worker, common)
+  .dependsOn(master, worker, common)
 
 lazy val master = (project in file("master"))
   .settings(
@@ -38,6 +38,7 @@ lazy val master = (project in file("master"))
     assembly / mainClass := Some("gensort.master.MasterWorkerServer"),
     libraryDependencies += scalaTest % Test
   )
+  .dependsOn(common)
 
 lazy val worker = (project in file("worker"))
   .settings(
@@ -45,7 +46,7 @@ lazy val worker = (project in file("worker"))
     settings,
     commonAssemblySettings
   )
-  .dependsOn(master)
+  .dependsOn(common)
 
 lazy val common = (project in file("common"))
   .settings(

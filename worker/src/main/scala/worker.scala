@@ -86,7 +86,7 @@ class MasterWorkerClient private (
 
     try {
       val response = blockingStub.fileTransfer(request)
-      logger.info("Received input\n" + response.message)
+      logger.info("Received input\n" + response.file)
 
       val dir = new File("./data/received")
       if (!dir.exists()) {
@@ -97,7 +97,7 @@ class MasterWorkerClient private (
       file.createNewFile()
 
       val path = Paths.get("./data/received/receivedInput")
-      Files.write(path, response.message.getBytes())
+      Files.write(path, response.file.getBytes())
     } catch {
       case e: StatusRuntimeException =>
         logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus)

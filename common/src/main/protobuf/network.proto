@@ -63,5 +63,6 @@ service Network {
   message FileReply {
     ResultType result = 1;
     string message = 2;
+    string file = 3;
   }
   

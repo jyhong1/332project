@@ -18,13 +18,14 @@ import protos.network.{
 }
 import java.util.logging.Logger
 import scala.concurrent.{ExecutionContext, Future}
-import io.grpc.{Server, ServerBuilder}
+import io.grpc.{Server, ServerBuilder, Status}
 import java.net.InetAddress
 import java.net._
 import java.io.{OutputStream, FileOutputStream, File}
 import scala.sys.process._
 import scala.io.Source
 import com.google.protobuf.ByteString
+import io.grpc.stub.StreamObserver;
 
 object MasterWorkerServer {
   private val logger =
@@ -110,11 +111,32 @@ class MasterWorkerServer(executionContext: ExecutionContext) { self =>
       )
       Future.successful(reply)
     }
-    override def sampling(req: SamplingRequest) = {
-      val reply = SamplingReply(
-        message = "Connection complete from " + req.name
-      )
-      Future.successful(reply)
+    override def sampling(req: StreamObserver[SamplingReply]): StreamObserver[SamplingRequest] = {
+      MasterWorkerServer.logger.info("[Sample] Workers tries to send samples")
+      new StreamObserver[SamplingRequest]{
+        var workerId: Int = -1
+        var samples: Seq[String] = Seq()
+
+        override def onNext(request: SamplingRequest): Unit ={
+          workerId = request.id
+          samples = request.samples
+        }
+
+        override def onError(t:Throwable): Unit = {
+          MasterWorkerServer.logger.warning(s"[Sample]: Worker $workerId failed to send samples: ${Status.fromThrowable(t)}")
+          throw t
+        }
+
+        override def onCompleted(): Unit = {
+          MasterWorkerServer.logger.info(s"[Sample]: Worker $workerId done sending samples")
+
+          req.onNext(new SamplingReply(result = ResultType.SUCCESS))
+          req.onCompleted
+
+        /*synchronization implementation required!*/
+
+        }
+      }
     }
     override def shuffle(req: ShuffleRequest) = {
       val reply = ShuffleReply(

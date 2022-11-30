@@ -23,13 +23,19 @@ import io.grpc.{StatusRuntimeException, ManagedChannelBuilder, ManagedChannel}
 import java.net.InetAddress
 import java.io.{OutputStream, FileOutputStream, File, IOException}
 import java.nio.file.{Files, Path, Paths}
+import scala.concurrent.{Promise, Await}
+import scala.concurrent.duration._
+import phase.{sampleMaker}
+import io.grpc.stub.StreamObserver
+import io.grpc.{Status}
 
 object MasterWorkerClient {
   def apply(host: String, port: Int): MasterWorkerClient = {
     val channel =
       ManagedChannelBuilder.forAddress(host, port).usePlaintext().build
     val blockingStub = NetworkGrpc.blockingStub(channel)
-    new MasterWorkerClient(channel, blockingStub)
+    val asyncStub = NetworkGrpc.stub(channel)
+    new MasterWorkerClient(channel, blockingStub, asyncStub)
   }
 
   def main(args: Array[String]): Unit = {
@@ -42,10 +48,20 @@ object MasterWorkerClient {
     val client = MasterWorkerClient(master(0), master(1).toInt)
 
     val inputPath = System.getProperty("user.dir") + "data/input"
+    val sampleSize = 0
+    val samples:Seq[String] = Seq()
+
     try {
       val user = args.headOption.getOrElse("Team Red!")
       client.connect(user)
       client.requestFile(inputPath)
+      samples::client.makeSamples(inputPath,sampleSize)
+
+      /*send samples*/
+      val samplePromise = Promise[Unit]()
+      client.sendSamples(samplePromise)
+      Await.ready(samplePromise.future, Duration.Inf)
+      
     } finally {
       client.shutdown()
     }
@@ -54,7 +70,8 @@ object MasterWorkerClient {
 
 class MasterWorkerClient private (
     private val channel: ManagedChannel,
-    private val blockingStub: NetworkBlockingStub
+    private val blockingStub: NetworkBlockingStub,
+    private val asyncStub: NetworkStub
 ) {
   private[this] val logger =
     Logger.getLogger(classOf[MasterWorkerClient].getName)
@@ -103,4 +120,45 @@ class MasterWorkerClient private (
         logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus)
     }
   }
+
+  /*Sample phase: make samples*/
+  def makeSamples(inputPath: String, sampleSize: Int): Seq[String] ={
+    logger.info("[Sample] First half start")
+    val samples = sampleMaker.sampling(inputPath,sampleSize)
+    logger.info("[Sample] First half done")
+    samples
+  }
+
+  /*Sample phase: send samples*/
+  final def sendSamples(samplePromise: Promise[Unit]): Unit= {
+    logger.info("[Sample] Try to send samples to Master")
+
+    val responseObserver = new StreamObserver[SamplingReply](){
+      override def onNext(response: SamplingReply): Unit = {
+        if (response.result == ResultType.SUCCESS){
+          samplePromise.success()
+        }
+      }
+      override def onError(t: Throwable): Unit = {
+        logger.warning(s"[Sample] Server response Failed: ${Status.fromThrowable(t)}")
+        samplePromise.failure(new Exception)
+      }
+
+      override def onCompleted(): Unit = {
+        logger.info("[Sample] Done sending sample")
+      }
+    }
+    val replyingObserver =asyncStub.sampling(responseObserver)
+    try{
+      val reply = SamplingRequest(id=id,samples=samples)
+      replyingObserver.onNext(reply)
+    } catch{
+      case e: RuntimeException => {
+          // Cancel RPC
+          replyingObserver.onError(e)
+          throw e
+        }
+    }
+    replyingObserver.onCompleted()
+    }
 }

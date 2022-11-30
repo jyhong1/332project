@@ -5,6 +5,7 @@ example/scalapb/**
 !/example/scalapb/examples/basic
 !/example/scalapb/examples/basic/**
 
+/data/received
 
 *.class
 *.log

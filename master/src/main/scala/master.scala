@@ -129,12 +129,16 @@ class MasterWorkerServer(executionContext: ExecutionContext) { self =>
       Future.successful(reply)
     }
     override def fileTransfer(req: FileRequest) = {
-      val reply = FileReply(result = ResultType.SUCCESS, message = getLine())
-      Future.successful(reply)
+      val reply = FileReply(
+        result = ResultType.SUCCESS,
+        message = "File transfer complete from master to " + req.ip,
+        file = getLine()
+      )
 
       MasterWorkerServer.logger.info(
         "[File Transfer] Input file reply to " + req.ip + ":" + req.port + " completed"
       )
+      Future.successful(reply)
     }
   }
 

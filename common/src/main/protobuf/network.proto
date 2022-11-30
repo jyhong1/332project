@@ -4,7 +4,7 @@ package protos;
 
 service Network {
     rpc Connection (ConnectionRequest) returns (ConnectionReply) {}
-    rpc Sampling (stream SamplingRequest) returns (SamplingReply) {}
+    rpc Sampling (SamplingRequest) returns (SamplingReply) {}
     rpc SortPartition (SortPartitionRequest) returns (SortPartitionReply) {}
     rpc Shuffle (ShuffleRequest) returns (ShuffleReply) {}
     rpc Merge (MergeRequest) returns (MergeReply) {}

@@ -111,33 +111,16 @@ class MasterWorkerServer(executionContext: ExecutionContext) { self =>
       )
       Future.successful(reply)
     }
-    override def sampling(req: StreamObserver[SamplingReply]): StreamObserver[SamplingRequest] = {
-      MasterWorkerServer.logger.info("[Sample] Workers tries to send samples")
-      new StreamObserver[SamplingRequest]{
-        var workerId: Int = -1
-        var samples: Seq[String] = Seq()
-
-        override def onNext(request: SamplingRequest): Unit ={
-          workerId = request.id
-          samples = request.samples
-        }
-
-        override def onError(t:Throwable): Unit = {
-          MasterWorkerServer.logger.warning(s"[Sample]: Worker $workerId failed to send samples: ${Status.fromThrowable(t)}")
-          throw t
-        }
-
-        override def onCompleted(): Unit = {
-          MasterWorkerServer.logger.info(s"[Sample]: Worker $workerId done sending samples")
-
-          req.onNext(new SamplingReply(result = ResultType.SUCCESS))
-          req.onCompleted
-
-        /*synchronization implementation required!*/
-
-        }
-      }
+    override def sampling(req: SamplingRequest)= {
+      val reply = SamplingReply(
+        result = ResultType.SUCCESS
+      )
+      MasterWorkerServer.logger.info(
+        "[Sampling phase] sampling done with"+req.id + req.samples 
+      )
+      Future.successful(reply)
     }
+
     override def shuffle(req: ShuffleRequest) = {
       val reply = ShuffleReply(
         message = "Connection complete from " + req.name

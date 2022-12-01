@@ -41,3 +41,7 @@ website/static/api
 # etc
 .vscode/
 .metals/
+.bloop/
+*/bloop/
+project/project/metals.sbt
+project/project/project/metals.sbt

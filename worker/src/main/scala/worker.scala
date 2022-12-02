@@ -45,6 +45,7 @@ object Worker {
       }
 
       sort("./data/received")
+      mergeFile("./data/partition")
       client.sortPartitionComplete()
 
     } finally {
@@ -109,4 +110,50 @@ object Worker {
         file <- files
       } yield sortSingleFile(file)
   }
+
+  /* Merge phase function start*/
+  def mergeFile(inputDir: String) = {
+    val dir = new File(inputDir)
+    val files = if (dir.exists() && dir.isDirectory()) {
+      dir.listFiles().filter(_.isFile()).toList
+    } else {
+      List[File]()
+    }
+    println(files)
+
+    var lines =
+      for {
+        file <- files
+      } yield getLine(file)
+
+    val mergedString = lines.mkString("\n")
+
+    //println("mergedString\n" + mergedString)
+
+    var strings =
+      for {
+        string <- mergedString.split('\n')
+      } yield string // type of lines = <iterator>
+
+    val sortedList = strings.toList.sortWith((s1, s2) => comparator(s1, s2))
+    val sortedString = sortedList.mkString("\n")
+
+    //println("Sort mergedString\n" + sortedString)
+    val makeMergeFile = new File(inputDir + "/mergedFile")
+    val path = Paths.get(inputDir + "/mergedFile")
+    Files.write(path, sortedString.getBytes())
+  }
+
+  def getLine(fileName: File): String = {
+    val inputFile = Source.fromFile(fileName.getPath)
+    var lines =
+      for {
+        line <- inputFile.getLines
+      } yield line // type of lines = <iterator>
+
+    var copyInput = lines.mkString("\n")
+    assert(!copyInput.isEmpty())
+    copyInput
+  }
+  /*Merge phase function end*/
 }

@@ -27,6 +27,7 @@ import java.io.{OutputStream, FileOutputStream, File}
 import scala.sys.process._
 import scala.io.Source
 import com.google.protobuf.ByteString
+import rangegenerator.keyRangeGenerator
 
 object NetworkServer {
   private val logger =
@@ -133,11 +134,19 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
         case Some(addr) => addr
         case None       => Address(ip = "", port = 1) // TODO: error handling
       }
+       NetworkServer.logger.info(
+        "[Sampling] Sampling Request from " + addr.ip + ":" + addr.port + " arrived"
+      )
+       NetworkServer.logger.info(
+        "[Sampling] test log about sampling " + req.samples.head + " arrived"
+       )
 
       // TODO: sync and make keys
+      
+      val keyranges:Seq[(String, String)] = new keyRangeGenerator(req.samples,2).generateKeyrange() /*num workers required*/
 
       val reply = SamplingReply(
-        result = ResultType.SUCCESS
+        result = ResultType.SUCCESS,
       )
 
       NetworkServer.logger.info(

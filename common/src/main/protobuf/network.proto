@@ -16,18 +16,23 @@ service Network {
     PENDING = 1;
     SUCCESS = 2;
   }
-
-  message ConnectionRequest {
+  
+  message Address {
     string ip = 1;
     int32 port = 2;
+  }
+
+  message ConnectionRequest {
+    Address addr = 1;
   }
   message ConnectionReply {
     ResultType result = 1;
     string message = 2;
+    string file = 3;
   }
 
   message SamplingRequest {
-    int32 id = 1;
+    Address addr = 1;
     repeated string samples = 2;
   }
   message SamplingReply {

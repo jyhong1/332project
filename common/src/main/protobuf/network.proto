@@ -40,29 +40,29 @@ service Network {
   }
 
   message SortPartitionRequest {
-    string name = 1;
+    Address addr = 1;
   }
   message SortPartitionReply {
     string message = 1;
   }
 
   message ShuffleRequest {
-    string name = 1;
+    Address addr = 1;
   }
   message ShuffleReply {
     string message = 1;
   }
 
   message MergeRequest {
-    string name = 1;
+    Address addr = 1;
   }
   message MergeReply {
     string message = 1;
   }
 
+  // later used in file transfer between workers
   message FileRequest {
-    string ip = 1;
-    int32 port = 2;
+    Address addr = 1;
     string inputdir = 3;
   }
   

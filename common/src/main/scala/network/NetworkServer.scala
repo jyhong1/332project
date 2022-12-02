@@ -117,14 +117,14 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
       )
 
       NetworkServer.logger.info(
-        "[Conenction] Input file reply to " + addr.ip + ":" + addr.port + " completed"
+        "[Connection] Input file reply to " + addr.ip + ":" + addr.port + " completed"
       )
       Future.successful(reply)
     }
 
     override def merge(req: MergeRequest) = {
       val reply = MergeReply(
-        message = "Connection complete from " + req.name
+        message = "Connection complete from "
       )
       Future.successful(reply)
     }
@@ -141,20 +141,31 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
       )
 
       NetworkServer.logger.info(
-        "[Sampling phase] sampling done with " + addr.ip + " " + req.samples
+        "[Sampling] sampling completed from " + addr.ip + ":" + addr.port + req.samples
       )
       Future.successful(reply)
     }
 
     override def shuffle(req: ShuffleRequest) = {
       val reply = ShuffleReply(
-        message = "Connection complete from " + req.name
+        message = "Connection complete from "
       )
       Future.successful(reply)
     }
     override def sortPartition(req: SortPartitionRequest) = {
+      val addr = req.addr match {
+        case Some(addr) => addr
+        case None       => Address(ip = "", port = 1) // TODO: error handling
+      }
+
+      // TODO: sync and organize the sequence of file transfer
+      NetworkServer.logger.info(
+        "[Sort/Partition] sort/partition completed from " + addr.ip + ":" + addr.port
+      )
+
       val reply = SortPartitionReply(
-        message = "Connection complete from " + req.name
+        message = "Please start to transfer partitions"
+        // TODO: give sequence
       )
       Future.successful(reply)
     }

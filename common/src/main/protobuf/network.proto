@@ -22,6 +22,12 @@ service Network {
     int32 port = 2;
   }
 
+  message KeyRange {
+    Address addr = 1;
+    string from = 2;
+    string to = 3;
+  }
+
   message ConnectionRequest {
     Address addr = 1;
   }
@@ -37,8 +43,8 @@ service Network {
   }
   message SamplingReply {
     ResultType result = 1;
+    repeated KeyRange workers = 2;
   }
-
   message SortPartitionRequest {
     Address addr = 1;
   }

@@ -11,6 +11,7 @@ import java.nio.file.{Files, Path, Paths}
 import scala.concurrent.duration._
 import phase.sampleMaker
 import io.grpc.stub.StreamObserver
+import scala.io.Source
 
 object Worker {
   def main(args: Array[String]): Unit = {
@@ -27,10 +28,10 @@ object Worker {
     val sampleSize = 10
 
     try {
-      val user = args.headOption.getOrElse("Team Red!")
-      val connectResponse = client.connect(user)
+      val address = args.headOption.getOrElse("Team Red!")
+      val connectResponse = client.connect(address)
       if (connectResponse.result == ResultType.FAILURE) {
-        // TODO: if failure
+        // TODO: if fails
       }
 
       // Create input files and start sampling
@@ -42,6 +43,9 @@ object Worker {
       if (samplingReply.result == ResultType.FAILURE) {
         // TODO: if fails
       }
+
+      sort("./data/received")
+      client.sortPartitionComplete()
 
     } finally {
       client.shutdown()
@@ -67,5 +71,42 @@ object Worker {
     val samples = sampleMaker.sampling(inputPath, sampleSize)
     // logger.info("[Sample Phase] Complete to make Samples")
     samples
+  }
+
+  def comparator(s1: String, s2: String): Boolean = {
+    s1.slice(0, 10) < s2.slice(0, 10)
+  }
+
+  def sortSingleFile(inputFile: File) = {
+    val inputPath = inputFile.getPath()
+    val inputFileSource = Source.fromFile(inputPath)
+    var lines =
+      for {
+        line <- inputFileSource.getLines
+      } yield line // type of lines = <iterator>
+
+    val sortedList = lines.toList.sortWith((s1, s2) => comparator(s1, s2))
+    val sortedString = sortedList.mkString("\n")
+
+    // the paths of input and output file is same, which means overwritten.
+    val outputFile = new File(inputPath)
+    outputFile.createNewFile()
+    val outputPath = Paths.get(inputPath)
+    Files.write(outputPath, sortedString.getBytes())
+  }
+
+  def sort(inputDir: String) = {
+    val dir = new File(inputDir)
+    val files = if (dir.exists() && dir.isDirectory()) {
+      dir.listFiles().filter(_.isFile()).toList
+    } else {
+      List[File]()
+    }
+    println(files)
+
+    var lines =
+      for {
+        file <- files
+      } yield sortSingleFile(file)
   }
 }

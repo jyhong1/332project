@@ -55,8 +55,8 @@ class NetworkClient private (
     channel.shutdown.awaitTermination(5, TimeUnit.SECONDS)
   }
 
-  def connect(name: String): ConnectionReply = {
-    logger.info("[Connection]: Start to connect to Master server" + name)
+  def connect(address: String): ConnectionReply = {
+    logger.info("[Connection]: Start to connect to Master server " + address)
 
     val addr = Address(localhostIP, port)
     val request = ConnectionRequest(Some(addr))
@@ -88,6 +88,25 @@ class NetworkClient private (
       case e: StatusRuntimeException =>
         logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus)
         SamplingReply(ResultType.FAILURE)
+    }
+  }
+
+  def sortPartitionComplete(): SortPartitionReply = {
+    logger.info(
+      "[Sort/Partition]: Try to send finish message to Master server"
+    )
+
+    val addr = Address(localhostIP, port)
+    val request = SortPartitionRequest(Some(addr))
+    try {
+      val response = blockingStub.sortPartition(request)
+      logger.info("[Sort/Partition]: " + response.message)
+
+      response
+    } catch {
+      case e: StatusRuntimeException =>
+        logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus)
+        SortPartitionReply("failed")
     }
   }
 }

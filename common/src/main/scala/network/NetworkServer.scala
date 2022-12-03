@@ -28,6 +28,7 @@ import scala.sys.process._
 import scala.io.Source
 import com.google.protobuf.ByteString
 import rangegenerator.keyRangeGenerator
+import common.{State, WorkerInfo}
 
 object NetworkServer {
   private val logger =
@@ -43,10 +44,11 @@ object NetworkServer {
   }
 }
 
-class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
+class NetworkServer(executionContext: ExecutionContext, numClients: Int)
+    extends State {
   self =>
   private[this] var server: Server = null
-  private[this] var clientSet: Map[Int, (String, Int)] = Map()
+  private[this] var clientMap: Map[Int, WorkerInfo] = Map()
 
   private val localhostIP = InetAddress.getLocalHost.getHostAddress
 
@@ -104,23 +106,43 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
         case Some(addr) => addr
         case None       => Address(ip = "", port = 1) // TODO: error handling
       }
+
       NetworkServer.logger.info(
         "[Connection] Request from " + addr.ip + ":" + addr.port + " arrived"
       )
 
-      // TODO: save worker information
+      clientMap.synchronized {
+        // TODO: save worker information
+        val workerInfo = new WorkerInfo(addr.ip, addr.port)
+        clientMap = clientMap + (clientMap.size + 1 -> workerInfo)
+        println(clientMap)
+      }
 
-      // can give pending?
-      val reply = ConnectionReply(
-        result = ResultType.SUCCESS,
-        message = "Connection complete to master from " + addr.ip,
-        file = getLine()
-      )
+      if (waitWhile(() => clientMap.size < numClients, 100000)) {
+        // can give pending?
+        val reply = ConnectionReply(
+          result = ResultType.SUCCESS,
+          message = "Connection complete to master from " + addr.ip,
+          file = getLine()
+        )
 
-      NetworkServer.logger.info(
-        "[Connection] Input file reply to " + addr.ip + ":" + addr.port + " completed"
-      )
-      Future.successful(reply)
+        NetworkServer.logger.info(
+          "[Connection] Input file reply to " + addr.ip + ":" + addr.port + " completed"
+        )
+        Future.successful(reply)
+      } else {
+        val reply = ConnectionReply(
+          result = ResultType.FAILURE,
+          message = "Connection failure to master from " + addr.ip,
+          file = getLine()
+        )
+
+        NetworkServer.logger.info(
+          "[Connection] Input file reply to " + addr.ip + ":" + addr.port + " completed"
+        )
+        Future.successful(reply)
+      }
+
     }
 
     override def merge(req: MergeRequest) = {
@@ -134,19 +156,21 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
         case Some(addr) => addr
         case None       => Address(ip = "", port = 1) // TODO: error handling
       }
-       NetworkServer.logger.info(
+      NetworkServer.logger.info(
         "[Sampling] Sampling Request from " + addr.ip + ":" + addr.port + " arrived"
       )
-       NetworkServer.logger.info(
+      NetworkServer.logger.info(
         "[Sampling] test log about sampling " + req.samples.head + " arrived"
-       )
+      )
 
       // TODO: sync and make keys
-      
-      val keyranges:Seq[(String, String)] = new keyRangeGenerator(req.samples,2).generateKeyrange() /*num workers required*/
+
+      val keyranges: Seq[(String, String)] =
+        new keyRangeGenerator(req.samples, 2)
+          .generateKeyrange() /*num workers required*/
 
       val reply = SamplingReply(
-        result = ResultType.SUCCESS,
+        result = ResultType.SUCCESS
       )
 
       NetworkServer.logger.info(
@@ -180,5 +204,11 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
     }
 
     override def fileTransfer(request: FileRequest): Future[FileReply] = ???
+  }
+
+  def waitWhile(condition: () => Boolean, timeout: Int): Boolean = {
+    for (i <- 1 to timeout / 50)
+      if (!condition()) return true else Thread.sleep(50)
+    false
   }
 }

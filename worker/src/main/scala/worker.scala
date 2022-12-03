@@ -46,6 +46,10 @@ object Worker {
 
       sort("./data/received")
       mergeFile("./data/partition")
+      // val ranges = samplingReply.range
+      // val range = (samplingReply.from(), samplingReply.to())
+      // partition()
+
       client.sortPartitionComplete()
 
     } finally {
@@ -128,7 +132,7 @@ object Worker {
 
     val mergedString = lines.mkString("\n")
 
-    //println("mergedString\n" + mergedString)
+    // println("mergedString\n" + mergedString)
 
     var strings =
       for {
@@ -138,7 +142,7 @@ object Worker {
     val sortedList = strings.toList.sortWith((s1, s2) => comparator(s1, s2))
     val sortedString = sortedList.mkString("\n")
 
-    //println("Sort mergedString\n" + sortedString)
+    // println("Sort mergedString\n" + sortedString)
     val makeMergeFile = new File(inputDir + "/mergedFile")
     val path = Paths.get(inputDir + "/mergedFile")
     Files.write(path, sortedString.getBytes())

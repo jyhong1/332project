@@ -67,7 +67,7 @@ object Worker {
       }
 
       assert(sortDirs.size > 0)
-      partition(sortDirs, samplingReply.ranges, samplingReply.addresses)
+      partition(sortDirs, samplingReply.ranges)
 
       // ### Shuffle ###
 
@@ -121,7 +121,7 @@ object Worker {
 
     // TODO: this needs to be fixed...
     val inputPathSplit = inputPath.split("data")
-    val outputDirPathSplit = inputPathSplit(1).split("/")
+    val outputDirPathSplit = inputPathSplit(1).split("\\\\")
     val outputDirPathString =
       inputPathSplit(0) + "data/sort/" + outputDirPathSplit(1)
 
@@ -157,13 +157,43 @@ object Worker {
       } yield sortSingleFile(file)
   }
 
+  /*Separate partition by keyranges after reading all sorted blocks(./data/sort)
+  Partitioned files saved at partitionPath */
   def partition(
       inputDirs: List[String],
-      ranges: Seq[protos.network.Range],
-      address: Seq[Address]
+      ranges: Seq[protos.network.Range]
   ) = {
-    assert(ranges.size == address.size)
+    val allFilePath = getFilePathsFromDir(inputDirs) //read all files from ./data/sort
 
+    //get lines from entire input files
+    var part =
+      for {
+        path <- allFilePath
+        lines <- Source.fromFile(path).getLines 
+      } yield lines
+    
+    //save partition
+    var i = 0
+    for (range <- ranges) {
+      i += 1 //partition number starts from 1
+
+      val partLines =
+        //return if range.from < partLine < range.to
+        for (partLine <- part; if(comparator(range.from, partLine) && comparator(partLine, range.to))) yield partLine 
+
+      val partitionPath = "./data/partition_real"
+      val dir = new File(partitionPath)
+      if (!dir.exists()) {
+        dir.mkdir()
+      }
+      
+      val partitionName = "partition" + i.toString()
+      val file = new File(partitionPath + "/" + partitionName)
+      file.createNewFile()
+
+      val path = Paths.get(partitionPath + "/" + partitionName)
+      Files.write(path, partLines.mkString("\n").getBytes())
+    }
   }
 
   /* Merge phase function start*/

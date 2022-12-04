@@ -1,6 +1,12 @@
 package gensort.worker
 
-import protos.network.{ResultType, ConnectionReply, SamplingReply}
+import protos.network.{
+  ResultType,
+  ConnectionReply,
+  SamplingReply,
+  Range,
+  Address
+}
 import network.{NetworkClient}
 import java.util.concurrent.TimeUnit
 import java.util.logging.{Level, Logger}
@@ -15,40 +21,58 @@ import scala.io.Source
 
 object Worker {
   def main(args: Array[String]): Unit = {
-    /*require(
+    require(
       args.length >= 5 && args(0).contains(":") && args(1) == "-I" && args(
         args.length - 2
       ) == "-O"
-    )*/
+    )
     val master = args(0).split(":")
     val client = NetworkClient(master(0), master(1).toInt)
 
-    val inputPath = System.getProperty("user.dir") + "data/input"
-    val sampleInputPath = System.getProperty("user.dir") + "/data/input"
-    val sampleSize = 10
+    val inputDirs = args.slice(2, args.length - 2).toList
+    val inputFullDirs =
+      inputDirs.map(path => System.getProperty("user.dir") + path)
+    val inputFilePaths = getFilePathsFromDir(inputFullDirs)
+    println(inputFilePaths)
+
+    val sampleSize = 10 // TODO: Change this
 
     try {
-      val address = args.headOption.getOrElse("Team Red!")
-      val connectResponse = client.connect(address)
+      val connectResponse = client.connect(args(0))
       if (connectResponse.result == ResultType.FAILURE) {
         // TODO: if fails
       }
 
       // Create input files and start sampling
       // after receiving "success" connect response.
-      createInputFiles(connectResponse.file)
 
-      val samples = makeSamples(sampleInputPath, sampleSize)
+      val samples = makeSamples(inputFilePaths, sampleSize)
       val samplingReply = client.sendSamples(samples)
       if (samplingReply.result == ResultType.FAILURE) {
         // TODO: if fails
       }
 
-      sort("./data/received")
-      mergeFile("./data/partition")
-      // val ranges = samplingReply.range
-      // val range = (samplingReply.from(), samplingReply.to())
-      // partition()
+      // ### Sort ###
+      sort(inputFullDirs)
+
+      // ### Partition ###
+      val sortDir = System.getProperty("user.dir") + "/data/sort"
+      val dir = new File(sortDir)
+
+      assert(dir.exists() && dir.isDirectory())
+      val sortDirs = if (dir.exists() && dir.isDirectory()) {
+        dir.listFiles().filter(_.isDirectory()).map(_.getPath()).toList
+      } else {
+        List[String]()
+      }
+
+      assert(sortDirs.size > 0)
+      partition(sortDirs, samplingReply.ranges, samplingReply.addresses)
+
+      // ### Shuffle ###
+
+      // ### Merge ###
+      // mergeFile("./data/partition")
 
       client.sortPartitionComplete()
 
@@ -57,6 +81,7 @@ object Worker {
     }
   }
 
+  // *** Unused ***
   def createInputFiles(fileContent: String): Unit = {
     val dir = new File("./data/received")
     if (!dir.exists()) {
@@ -71,9 +96,12 @@ object Worker {
   }
 
   /*Sample phase: make samples*/
-  def makeSamples(inputPath: String, sampleSize: Int): Seq[String] = {
+  def makeSamples(inputPaths: List[String], sampleSize: Int): Seq[String] = {
     // logger.info("[Sampling Phase] Start to make Samples")
-    val samples = sampleMaker.sampling(inputPath, sampleSize)
+    val samples =
+      inputPaths.flatMap(path => sampleMaker.sampling(path, sampleSize)).toSeq
+
+    // val samples = sampleMaker.sampling(inputPath, sampleSize)
     // logger.info("[Sample Phase] Complete to make Samples")
     samples
   }
@@ -93,21 +121,37 @@ object Worker {
     val sortedList = lines.toList.sortWith((s1, s2) => comparator(s1, s2))
     val sortedString = sortedList.mkString("\n")
 
-    // the paths of input and output file is same, which means overwritten.
+    // TODO: this needs to be fixed...
+    val inputPathSplit = inputPath.split("data")
+    val outputDirPathSplit = inputPathSplit(1).split("/")
+    val outputDirPathString =
+      inputPathSplit(0) + "data/sort/" + outputDirPathSplit(1)
+
+    val outputDir = new File(outputDirPathString)
+    if (!outputDir.exists()) {
+      outputDir.mkdir()
+    }
+
+    val outputPathString = inputPathSplit(0) + "data/sort" + inputPathSplit(1)
     val outputFile = new File(inputPath)
     outputFile.createNewFile()
-    val outputPath = Paths.get(inputPath)
+    val outputPath = Paths.get(outputPathString)
     Files.write(outputPath, sortedString.getBytes())
   }
 
-  def sort(inputDir: String) = {
-    val dir = new File(inputDir)
-    val files = if (dir.exists() && dir.isDirectory()) {
-      dir.listFiles().filter(_.isFile()).toList
-    } else {
-      List[File]()
+  def sort(inputDirs: List[String]) = {
+    val dir = new File("./data/sort")
+    if (!dir.exists()) {
+      dir.mkdir()
     }
-    println(files)
+
+    val filePaths = getFilePathsFromDir(inputDirs)
+    println(filePaths)
+    val files = filePaths.map { path =>
+      val file = new File(path)
+      file.createNewFile()
+      file
+    }
 
     var lines =
       for {
@@ -115,9 +159,18 @@ object Worker {
       } yield sortSingleFile(file)
   }
 
+  def partition(
+      inputDirs: List[String],
+      ranges: Seq[protos.network.Range],
+      address: Seq[Address]
+  ) = {
+    assert(ranges.size == address.size)
+
+  }
+
   /* Merge phase function start*/
-  def mergeFile(inputDir: String) = {
-    val dir = new File(inputDir)
+  def mergeFile(inputDirs: String) = {
+    val dir = new File(inputDirs)
     val files = if (dir.exists() && dir.isDirectory()) {
       dir.listFiles().filter(_.isFile()).toList
     } else {
@@ -143,8 +196,8 @@ object Worker {
     val sortedString = sortedList.mkString("\n")
 
     // println("Sort mergedString\n" + sortedString)
-    val makeMergeFile = new File(inputDir + "/mergedFile")
-    val path = Paths.get(inputDir + "/mergedFile")
+    val makeMergeFile = new File(inputDirs + "/mergedFile")
+    val path = Paths.get(inputDirs + "/mergedFile")
     Files.write(path, sortedString.getBytes())
   }
 
@@ -159,5 +212,18 @@ object Worker {
     assert(!copyInput.isEmpty())
     copyInput
   }
-  /*Merge phase function end*/
+
+  def getFilePathsFromDir(dirs: List[String]): List[String] = {
+    val filePaths = dirs.flatMap { dirPath =>
+      val dir = new File(dirPath)
+      val files = if (dir.exists() && dir.isDirectory()) {
+        dir.listFiles().filter(_.isFile()).map(file => file.getPath()).toList
+      } else {
+        List[String]()
+      }
+      files
+    }
+    filePaths
+  }
+
 }

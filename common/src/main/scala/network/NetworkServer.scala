@@ -3,6 +3,7 @@ package network
 import protos.network.{
   NetworkGrpc,
   Address,
+  Range,
   ConnectionRequest,
   ConnectionReply,
   MergeRequest,
@@ -28,7 +29,7 @@ import scala.sys.process._
 import scala.io.Source
 import com.google.protobuf.ByteString
 import rangegenerator.keyRangeGenerator
-import common.{State, WorkerInfo}
+import common.{WorkerState, WorkerInfo}
 
 object NetworkServer {
   private val logger =
@@ -44,11 +45,11 @@ object NetworkServer {
   }
 }
 
-class NetworkServer(executionContext: ExecutionContext, numClients: Int)
-    extends State {
+class NetworkServer(executionContext: ExecutionContext, numClients: Int) { // extends State {
   self =>
   private[this] var server: Server = null
   private[this] var clientMap: Map[Int, WorkerInfo] = Map()
+  private[this] var addressList: Seq[Address] = Seq()
 
   private val localhostIP = InetAddress.getLocalHost.getHostAddress
 
@@ -119,11 +120,11 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int)
       }
 
       if (waitWhile(() => clientMap.size < numClients, 100000)) {
+
         // can give pending?
         val reply = ConnectionReply(
           result = ResultType.SUCCESS,
-          message = "Connection complete to master from " + addr.ip,
-          file = getLine()
+          message = "Connection complete to master from " + addr.ip
         )
 
         NetworkServer.logger.info(
@@ -133,8 +134,7 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int)
       } else {
         val reply = ConnectionReply(
           result = ResultType.FAILURE,
-          message = "Connection failure to master from " + addr.ip,
-          file = getLine()
+          message = "Connection failure to master from " + addr.ip
         )
 
         NetworkServer.logger.info(
@@ -145,12 +145,6 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int)
 
     }
 
-    override def merge(req: MergeRequest) = {
-      val reply = MergeReply(
-        message = "Connection complete from "
-      )
-      Future.successful(reply)
-    }
     override def sampling(req: SamplingRequest) = {
       val addr = req.addr match {
         case Some(addr) => addr
@@ -164,19 +158,61 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int)
       )
 
       // TODO: sync and make keys
+      var samples: Seq[String] = Seq()
+      samples.synchronized {
+        samples = samples ++ req.samples
+      }
 
-      val keyranges: Seq[(String, String)] =
-        new keyRangeGenerator(req.samples, 2)
-          .generateKeyrange() /*num workers required*/
+      clientMap.synchronized {
+        for (i <- 1 to clientMap.size) {
+          val workerInfo = clientMap(i)
+          if (workerInfo.ip == addr.ip && workerInfo.port == addr.port) {
+            val newWorkerInfo = new WorkerInfo(addr.ip, addr.port)
+            newWorkerInfo.setWorkerState(state = WorkerState.Sampling)
+            clientMap = clientMap + (i -> newWorkerInfo)
+          }
+        }
+      }
 
-      val reply = SamplingReply(
-        result = ResultType.SUCCESS
-      )
+      addressList.synchronized {
+        if (addressList.size != numClients) {
+          for (i <- 1 to clientMap.size) {
+            val workerInfo = clientMap(i)
+            val address = Address(ip = workerInfo.ip, port = workerInfo.port)
+            addressList = addressList :+ address
+          }
+        }
+      }
 
-      NetworkServer.logger.info(
-        "[Sampling] sampling completed from " + addr.ip + ":" + addr.port + req.samples
-      )
-      Future.successful(reply)
+      if (waitWhile(() => !isAllWorkersSamplingState(), 100000)) {
+        val keyRanges: Seq[Range] =
+          new keyRangeGenerator(req.samples, numClients)
+            .generateKeyrange()
+        println(keyRanges)
+
+        val reply = SamplingReply(
+          result = ResultType.SUCCESS,
+          // message = "Connection complete to master from " + addr.ip
+          ranges = keyRanges,
+          addresses = addressList
+        )
+
+        NetworkServer.logger.info(
+          "[Sampling] sampling completed from  " + addr.ip + ":" + addr.port + req.samples
+        )
+        Future.successful(reply)
+      } else {
+        val reply = SamplingReply(
+          result = ResultType.FAILURE
+          // message = "Connection failure to master from " + addr.ip
+        )
+
+        NetworkServer.logger.info(
+          "[Sampling] sampling failed from " + addr.ip + ":" + addr.port
+        )
+        Future.successful(reply)
+      }
+
     }
 
     override def shuffle(req: ShuffleRequest) = {
@@ -202,6 +238,12 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int)
       )
       Future.successful(reply)
     }
+    override def merge(req: MergeRequest) = {
+      val reply = MergeReply(
+        message = "Connection complete from "
+      )
+      Future.successful(reply)
+    }
 
     override def fileTransfer(request: FileRequest): Future[FileReply] = ???
   }
@@ -210,5 +252,12 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int)
     for (i <- 1 to timeout / 50)
       if (!condition()) return true else Thread.sleep(50)
     false
+  }
+
+  def isAllWorkersSamplingState(): Boolean = {
+    var res = true
+    for (i <- 1 to clientMap.size)
+      if (clientMap(i).workerState != WorkerState.Sampling) res = false
+    res
   }
 }

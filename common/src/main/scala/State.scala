@@ -16,7 +16,7 @@ class WorkerState {}
 class WorkerInfo(
     val ip: String,
     val port: Int
-) { // extends WorkerState {
+) {
   var workerState: WorkerState = WorkerState.Connected
 
   def setWorkerState(state: WorkerState) {

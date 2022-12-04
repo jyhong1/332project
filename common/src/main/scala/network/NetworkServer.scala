@@ -45,7 +45,7 @@ object NetworkServer {
   }
 }
 
-class NetworkServer(executionContext: ExecutionContext, numClients: Int) { // extends State {
+class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
   self =>
   private[this] var server: Server = null
   private[this] var clientMap: Map[Int, WorkerInfo] = Map()
@@ -113,15 +113,12 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) { // ex
       )
 
       clientMap.synchronized {
-        // TODO: save worker information
         val workerInfo = new WorkerInfo(addr.ip, addr.port)
         clientMap = clientMap + (clientMap.size + 1 -> workerInfo)
         println(clientMap)
       }
 
       if (waitWhile(() => clientMap.size < numClients, 100000)) {
-
-        // can give pending?
         val reply = ConnectionReply(
           result = ResultType.SUCCESS,
           message = "Connection complete to master from " + addr.ip
@@ -142,7 +139,6 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) { // ex
         )
         Future.successful(reply)
       }
-
     }
 
     override def sampling(req: SamplingRequest) = {
@@ -157,8 +153,8 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) { // ex
         "[Sampling] test log about sampling " + req.samples.head + " arrived"
       )
 
-      // TODO: sync and make keys
       var samples: Seq[String] = Seq()
+
       samples.synchronized {
         samples = samples ++ req.samples
       }

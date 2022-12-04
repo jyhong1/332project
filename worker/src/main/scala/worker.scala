@@ -100,8 +100,6 @@ object Worker {
     // logger.info("[Sampling Phase] Start to make Samples")
     val samples =
       inputPaths.flatMap(path => sampleMaker.sampling(path, sampleSize)).toSeq
-
-    // val samples = sampleMaker.sampling(inputPath, sampleSize)
     // logger.info("[Sample Phase] Complete to make Samples")
     samples
   }

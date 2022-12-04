@@ -16,16 +16,14 @@ service Network {
     PENDING = 1;
     SUCCESS = 2;
   }
+  message Range{
+    string from = 1;
+    string to = 2;
+  }
   
   message Address {
     string ip = 1;
     int32 port = 2;
-  }
-
-  message KeyRange {
-    Address addr = 1;
-    string from = 2;
-    string to = 3;
   }
 
   message ConnectionRequest {
@@ -34,7 +32,7 @@ service Network {
   message ConnectionReply {
     ResultType result = 1;
     string message = 2;
-    string file = 3;
+    //string file = 3;
   }
 
   message SamplingRequest {
@@ -43,8 +41,10 @@ service Network {
   }
   message SamplingReply {
     ResultType result = 1;
-    repeated KeyRange workers = 2;
+    repeated Range ranges= 2;
+    repeated Address addresses= 3;
   }
+
   message SortPartitionRequest {
     Address addr = 1;
   }

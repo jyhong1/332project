@@ -1,17 +1,26 @@
 package common
 
-trait State {
-  sealed abstract class workerState
-  case object Init extends workerState
-  case object Connected extends workerState
-  case object Sampling extends workerState
-  case object SortPartition extends workerState
-  case object Shuffle extends workerState
-  case object Merge extends workerState
-  case object End extends workerState
+object WorkerState {
+  // sealed abstract class WorkerState
+  case object Init extends WorkerState
+  case object Connected extends WorkerState
+  case object Sampling extends WorkerState
+  case object SortPartition extends WorkerState
+  case object Shuffle extends WorkerState
+  case object Merge extends WorkerState
+  case object End extends WorkerState
 }
 
-class WorkerInfo(ip: String, port: Int) extends State {
-  var workerState = Connected
+class WorkerState {}
+
+class WorkerInfo(
+    val ip: String,
+    val port: Int
+) { // extends WorkerState {
+  var workerState: WorkerState = WorkerState.Connected
+
+  def setWorkerState(state: WorkerState) {
+    workerState = state
+  }
 
 }

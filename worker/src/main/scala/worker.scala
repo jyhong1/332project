@@ -18,6 +18,11 @@ import scala.concurrent.duration._
 import phase.sampleMaker
 import io.grpc.stub.StreamObserver
 import scala.io.Source
+import shufflenetwork.FileServer
+import shufflenetwork.FileClient
+import scala.concurrent.ExecutionContext
+import java.net.InetAddress
+import util.control.Breaks.{breakable,break}
 
 object Worker {
   def main(args: Array[String]): Unit = {
@@ -34,7 +39,10 @@ object Worker {
       inputDirs.map(path => System.getProperty("user.dir") + path)
     val inputFilePaths = getFilePathsFromDir(inputFullDirs)
     println(inputFilePaths)
+    val outputFilePath = System.getProperty("user.dir") + args.last
+    println(outputFilePath)
 
+    val localhostIP = InetAddress.getLocalHost.getHostAddress
     val sampleSize = 10 // TODO: Change this
 
     try {
@@ -68,16 +76,48 @@ object Worker {
 
       assert(sortDirs.size > 0)
       partition(sortDirs, samplingReply.ranges)
-
-      // ### Shuffle ###
-
-      // ### Merge ###
-      // mergeFile("./data/partition")
-
       client.sortPartitionComplete()
+      //client 정보
+      // ### Shuffle ###
+      val workers = samplingReply.addresses
+      val ranges = samplingReply.ranges
+      val numWorkers = workers.length
+      val shuffleserver = FileServer(ExecutionContext.global,numWorkers-1)
+      shuffleserver.start() //success true
+      val result = shuffleserver.checkOnline(localhostIP,9000)
+      client.checkShuffleReady(result)
+
+      //client generate
+      
+      var completeness = false
+      val partitionStoragePath = "./data/partition_real/partition"
+
+      for( i <- 0 to workers.length-1){
+        breakable{
+          if (workers(i).ip == localhostIP){
+            if (i == workers.length-1){
+              break
+            }
+          }else{
+            val shuffleclient = FileClient(workers(i).ip,9000)
+            val fileName = partitionStoragePath + (i+1).toString()
+            shuffleclient.sendPartitions(workers(i).ip, fileName)
+            shuffleclient.shutdown()
+            if (i == workers.length-1){
+              completeness = true
+            }
+          }
+        }
+      }
+
+      client.checkShuffleComplete(completeness)
+      shuffleserver.stop()
+      
+      mergeFile("./data/partition_real",outputFilePath)
 
     } finally {
       client.shutdown()
+      println("merge done")
     }
   }
 
@@ -121,7 +161,7 @@ object Worker {
 
     // TODO: this needs to be fixed...
     val inputPathSplit = inputPath.split("data")
-    val outputDirPathSplit = inputPathSplit(1).split("\\\\")
+    val outputDirPathSplit = inputPathSplit(1).split("/")
     val outputDirPathString =
       inputPathSplit(0) + "data/sort/" + outputDirPathSplit(1)
 
@@ -197,7 +237,7 @@ object Worker {
   }
 
   /* Merge phase function start*/
-  def mergeFile(inputDirs: String) = {
+  def mergeFile(inputDirs: String, outputFilePath: String) = {
     val dir = new File(inputDirs)
     val files = if (dir.exists() && dir.isDirectory()) {
       dir.listFiles().filter(_.isFile()).toList
@@ -224,8 +264,18 @@ object Worker {
     val sortedString = sortedList.mkString("\n")
 
     // println("Sort mergedString\n" + sortedString)
-    val makeMergeFile = new File(inputDirs + "/mergedFile")
-    val path = Paths.get(inputDirs + "/mergedFile")
+    println("1111111")
+    val mergedir = new File(outputFilePath)
+    if (!mergedir.exists()){
+      mergedir.mkdir()
+    }
+    println("2222222")
+
+    val makeMergeFile = new File(outputFilePath + "/result")
+    makeMergeFile.createNewFile()
+     println("33333")
+
+    val path = Paths.get(outputFilePath + "/result")
     Files.write(path, sortedString.getBytes())
   }
 
@@ -253,5 +303,4 @@ object Worker {
     }
     filePaths
   }
-
 }

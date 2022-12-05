@@ -7,14 +7,14 @@ import protos.network.{
   ConnectionReply,
   MergeRequest,
   MergeReply,
-  ShuffleReply,
-  ShuffleRequest,
+  ShuffleReadyRequest,
+  ShuffleReadyReply,
+  ShuffleCompleteRequest,
+  ShuffleCompleteReply,
   SortPartitionReply,
   SortPartitionRequest,
   SamplingReply,
   SamplingRequest,
-  FileReply,
-  FileRequest,
   ResultType
 }
 
@@ -31,6 +31,7 @@ import java.nio.file.{Files, Path, Paths}
 import scala.concurrent.{Promise, Await}
 import scala.concurrent.duration._
 
+
 object NetworkClient {
   def apply(host: String, port: Int): NetworkClient = {
     val channel =
@@ -46,7 +47,7 @@ class NetworkClient private (
 ) {
   val id: Int = -1
   val localhostIP = InetAddress.getLocalHost.getHostAddress
-  val port = 8000
+  val port = 9000
 
   private[this] val logger =
     Logger.getLogger(classOf[NetworkClient].getName)
@@ -72,7 +73,6 @@ class NetworkClient private (
     }
   }
 
-  /*Sample phase: send samples*/
   final def sendSamples(samples: Seq[String]): SamplingReply = {
     logger.info("[Sampling] Try to send samples to Master")
     val addr = Address(localhostIP, port)
@@ -88,6 +88,36 @@ class NetworkClient private (
       case e: StatusRuntimeException =>
         logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus)
         SamplingReply(ResultType.FAILURE)
+    }
+  }
+
+  def checkShuffleReady(state: Boolean): ShuffleReadyReply ={
+    logger.info("[Shuffle] Try to send Shuffle ready to Master")
+    val addr = Address(localhostIP, port)
+    val request = ShuffleReadyRequest(Some(addr),state)
+    try {
+      val response = blockingStub.shuffleReady(request)
+      logger.info("[shuffle] Connect Status: " + response.result)
+      response
+    } catch {
+      case e: StatusRuntimeException =>
+        logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus)
+        ShuffleReadyReply(ResultType.FAILURE)
+    }
+  }
+
+  def checkShuffleComplete(state: Boolean) : ShuffleCompleteReply = {
+    logger.info("[Shuffle] Try to send Master shuffle complete")
+    val addr = Address(localhostIP, port)
+    val request = ShuffleCompleteRequest(Some(addr),state)
+    try{
+      val response = blockingStub.shuffleComplete(request)
+      logger.info("[Shuffle] complete arrange every partitions at" + addr.ip)
+      response
+    }catch{
+       case e: StatusRuntimeException =>
+        logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus)
+        ShuffleCompleteReply(ResultType.FAILURE)
     }
   }
 

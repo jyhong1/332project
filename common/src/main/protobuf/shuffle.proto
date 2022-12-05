@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package shuffle;
+
+service ShuffleNetwork {
+    rpc SendPartition(SendPartitionRequest) returns(SendPartitionReply){}
+}
+
+message sAddress {
+    string ip = 1;
+    int32 port = 2;
+}
+
+enum sResultType {
+    FAILURE = 0;
+    PENDING = 1;
+    SUCCESS = 2;
+  }
+
+message SendPartitionRequest {
+    sAddress from = 1;
+    sAddress to = 2;
+    repeated string partition = 3;
+    string path = 4;
+}
+
+message SendPartitionReply {
+    sResultType result = 1;
+}

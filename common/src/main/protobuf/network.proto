@@ -6,9 +6,9 @@ service Network {
     rpc Connection (ConnectionRequest) returns (ConnectionReply) {}
     rpc Sampling (SamplingRequest) returns (SamplingReply) {}
     rpc SortPartition (SortPartitionRequest) returns (SortPartitionReply) {}
-    rpc Shuffle (ShuffleRequest) returns (ShuffleReply) {}
+    rpc ShuffleReady(ShuffleReadyRequest) returns(ShuffleReadyReply){}
+    rpc ShuffleComplete(ShuffleCompleteRequest) returns(ShuffleCompleteReply) {}
     rpc Merge (MergeRequest) returns (MergeReply) {}
-    rpc FileTransfer (FileRequest) returns (FileReply) {}
   }
 
   enum ResultType {
@@ -52,11 +52,22 @@ service Network {
     string message = 1;
   }
 
-  message ShuffleRequest {
+  message ShuffleReadyRequest {
     Address addr = 1;
+    bool serverstate = 2;
   }
-  message ShuffleReply {
-    string message = 1;
+
+  message ShuffleReadyReply {
+    ResultType result = 1;
+  }
+
+  message ShuffleCompleteRequest {
+    Address addr = 1;
+    bool shufflecomplete = 2;
+  }
+
+  message ShuffleCompleteReply {
+    ResultType result = 1;
   }
 
   message MergeRequest {
@@ -65,16 +76,3 @@ service Network {
   message MergeReply {
     string message = 1;
   }
-
-  // later used in file transfer between workers
-  message FileRequest {
-    Address addr = 1;
-    string inputdir = 3;
-  }
-  
-  message FileReply {
-    ResultType result = 1;
-    string message = 2;
-    string file = 3;
-  }
-  

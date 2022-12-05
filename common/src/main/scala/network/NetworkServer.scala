@@ -8,14 +8,14 @@ import protos.network.{
   ConnectionReply,
   MergeRequest,
   MergeReply,
-  ShuffleReply,
-  ShuffleRequest,
+  ShuffleReadyRequest,
+  ShuffleReadyReply,
+  ShuffleCompleteRequest,
+  ShuffleCompleteReply,
   SortPartitionReply,
   SortPartitionRequest,
   SamplingReply,
   SamplingRequest,
-  FileRequest,
-  FileReply,
   ResultType
 }
 import java.util.logging.Logger
@@ -29,6 +29,7 @@ import scala.sys.process._
 import scala.io.Source
 import com.google.protobuf.ByteString
 import rangegenerator.keyRangeGenerator
+import shufflenetwork.FileServer
 import common.{WorkerState, WorkerInfo}
 
 object NetworkServer {
@@ -184,7 +185,7 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
         val keyRanges: Seq[Range] =
           new keyRangeGenerator(req.samples, numClients)
             .generateKeyrange()
-        println(keyRanges)
+        println(keyRanges) //remark
 
         val reply = SamplingReply(
           result = ResultType.SUCCESS,
@@ -194,7 +195,7 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
         )
 
         NetworkServer.logger.info(
-          "[Sampling] sampling completed from  " + addr.ip + ":" + addr.port + req.samples
+          "[Sampling] sampling completed from  " + addr.ip + ":" + addr.port
         )
         Future.successful(reply)
       } else {
@@ -211,12 +212,78 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
 
     }
 
-    override def shuffle(req: ShuffleRequest) = {
-      val reply = ShuffleReply(
-        message = "Connection complete from "
-      )
-      Future.successful(reply)
+    override def shuffleReady(req: ShuffleReadyRequest) = {
+      val addr = req.addr match{
+          case Some(addr) => addr
+          case None       => Address(ip ="", port =1)// TODO: error handling                
+      }
+        NetworkServer.logger.info(
+          "[Shuffle] File Server open Request from " + addr.ip + ":" + addr.port + " arrived"
+          )
+
+        var totalServerState:Int = 0
+        totalServerState.synchronized{
+          if(req.serverstate == true){
+            totalServerState+=1
+          }
+        }
+
+        if (waitWhile(() => clientMap.size < totalServerState, 100000)) {
+        val reply = ShuffleReadyReply(
+          result = ResultType.SUCCESS,
+        )
+
+        NetworkServer.logger.info(
+          "[Shuffle] All shuffle servers are ready to shuffle "
+        )
+        Future.successful(reply)
+      } else {
+        val reply = ShuffleReadyReply(
+          result = ResultType.FAILURE,
+        )
+        NetworkServer.logger.info(
+          "[Shuffle] shuffle server at" + addr.ip + "is not opend yet."
+        )
+        Future.successful(reply)
+      }
     }
+
+    override def shuffleComplete(req: ShuffleCompleteRequest) = {
+      val addr = req.addr match{
+          case Some(addr) => addr
+          case None       => Address(ip ="", port =1)// TODO: error handling                
+      }
+        NetworkServer.logger.info(
+          "[Shuffle] Worker " + addr.ip + ":" + addr.port + " completed send partitions"
+          )
+        
+        var shuffleCompleteWorkers:Int = 0
+        shuffleCompleteWorkers.synchronized{
+          if(req.shufflecomplete == true){
+            shuffleCompleteWorkers+=1
+          }
+        }
+
+        if (waitWhile(() => clientMap.size < shuffleCompleteWorkers, 100000)) {
+        val reply = ShuffleCompleteReply(
+          result = ResultType.SUCCESS
+        )
+
+        NetworkServer.logger.info(
+          "[Shuffle] Completed re arrange every items. "
+        )
+        Future.successful(reply)
+        } else {
+          val reply = ShuffleCompleteReply(
+            result = ResultType.FAILURE,
+          )
+          NetworkServer.logger.info(
+            "[Shuffle] shuffle server at" + addr.ip + "is not completed yet."
+          )
+          Future.successful(reply)
+        }
+    }
+    
     override def sortPartition(req: SortPartitionRequest) = {
       val addr = req.addr match {
         case Some(addr) => addr
@@ -241,7 +308,6 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
       Future.successful(reply)
     }
 
-    override def fileTransfer(request: FileRequest): Future[FileReply] = ???
   }
 
   def waitWhile(condition: () => Boolean, timeout: Int): Boolean = {

@@ -6,24 +6,29 @@ service ShuffleNetwork {
     rpc SendPartition(SendPartitionRequest) returns(SendPartitionReply){}
 }
 
+message partitionFile {
+    repeated string partition =1;
+}
+
 message sAddress {
     string ip = 1;
     int32 port = 2;
 }
-
 enum sResultType {
     FAILURE = 0;
     PENDING = 1;
     SUCCESS = 2;
   }
 
+/*
+  File Transfering messages
+*/
 message SendPartitionRequest {
-    sAddress from = 1;
-    sAddress to = 2;
-    repeated string partition = 3;
-    string path = 4;
+    sAddress from = 1; //giver machine address
+    repeated partitionFile partitions = 2; //item contents
+    repeated string filenames = 3;
+    string outputpath = 4;
 }
-
 message SendPartitionReply {
     sResultType result = 1;
 }

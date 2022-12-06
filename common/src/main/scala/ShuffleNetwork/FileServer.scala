@@ -19,11 +19,12 @@ import java.nio.file.Paths
 import java.nio.file.Files
 import java.io.BufferedWriter
 import java.io.FileWriter
+import common.Utils
 
 
 object FileServer{
     private val logger = Logger.getLogger(classOf[FileServer].getName)
-    private val port = 9000 /*TBD*/
+    private val port = 8000 /*TBD*/
     def apply(
       executionContext: ExecutionContext,
       numClients: Int
@@ -85,20 +86,24 @@ class FileServer(executionContext: ExecutionContext, numClients: Int) {
                 "[Shuffle] Partition from" + addr.ip +":" + addr.port + " arrived"
                 )
             var count: Int = 0
-
+            Utils.createdir(req.outputpath)
             count.synchronized{
-                val writer = new BufferedWriter(new FileWriter(req.path))
-                for (line <- req.partition){
-                    writer.write(line)
+                
+                for(i <- 0 to req.partitions.length-1){
+                    val partition = req.partitions(i)
+                    val writer = new BufferedWriter(new FileWriter(req.outputpath + "/" + req.filenames(i)))
+                    for ( i <- 0 until partition.partition.length){
+                        writer.write(partition.partition(i)+"\n")
+                    }
+                    writer.close()
                 }
                 FileServer.logger.info(
-                    "[Shuffle] received partition from" + addr.ip + ". item head is " + req.partition.head
+                    "[Shuffle] received partition from" + addr.ip
                 )
-                writer.close()
                 count+=1
             }
 
-            if (waitWhile(() => count < numClients, 100000)){
+            if (Utils.waitWhile(() => count < numClients, 100000)){
                 val reply = SendPartitionReply(
                     result = sResultType.SUCCESS
                 )
@@ -119,12 +124,4 @@ class FileServer(executionContext: ExecutionContext, numClients: Int) {
         }
         
     }
-
-    def waitWhile(condition: () => Boolean, timeout: Int): Boolean = {
-for (i <- 1 to timeout / 50)
-    if (!condition()) return true else Thread.sleep(50)
-false
 }
-
-}
-

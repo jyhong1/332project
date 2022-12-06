@@ -20,24 +20,29 @@ service Network {
     string from = 1;
     string to = 2;
   }
-  
   message Address {
     string ip = 1;
     int32 port = 2;
   }
 
+  /*
+    connection phase
+  */
   message ConnectionRequest {
     Address addr = 1;
   }
   message ConnectionReply {
     ResultType result = 1;
     string message = 2;
-    //string file = 3;
   }
 
+  /*
+    sampling phase
+  */
   message SamplingRequest {
     Address addr = 1;
     repeated string samples = 2;
+    int32 numitems = 3;
   }
   message SamplingReply {
     ResultType result = 1;
@@ -45,34 +50,43 @@ service Network {
     repeated Address addresses= 3;
   }
 
+  /*
+    sort/partition phase
+  */
   message SortPartitionRequest {
     Address addr = 1;
+    string message = 2;
   }
   message SortPartitionReply {
-    string message = 1;
+    ResultType result = 1;
+    string message = 2;
   }
 
+  /*
+    shuffle phase
+  */
   message ShuffleReadyRequest {
     Address addr = 1;
     bool serverstate = 2;
   }
-
   message ShuffleReadyReply {
     ResultType result = 1;
   }
-
   message ShuffleCompleteRequest {
     Address addr = 1;
     bool shufflecomplete = 2;
   }
-
   message ShuffleCompleteReply {
     ResultType result = 1;
   }
 
+  /*
+    merge phase
+  */
   message MergeRequest {
     Address addr = 1;
   }
   message MergeReply {
-    string message = 1;
+    ResultType result =1;
+    string message = 2;
   }

@@ -7,6 +7,7 @@ object sampleMaker {
     val bufferedSource = Source.fromFile(inputFilePath)
     val samples =
       bufferedSource.getLines.take(sampleSize).map(_.slice(0, 10)).toSeq
+
     samples
   }
 }

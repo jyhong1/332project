@@ -225,16 +225,44 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
         case None       => Address(ip = "", port = 1) // TODO: error handling
       }
 
-      // TODO: sync and organize the sequence of file transfer
-      NetworkServer.logger.info(
-        "[Sort/Partition] sort/partition completed from " + addr.ip + ":" + addr.port
-      )
+      clientMap.synchronized {
+        for (i <- 1 to clientMap.size) {
+          val workerInfo = clientMap(i)
+          if (workerInfo.ip == addr.ip && workerInfo.port == addr.port) {
+            val newWorkerInfo = new WorkerInfo(addr.ip, addr.port)
+            newWorkerInfo.setWorkerState(state = WorkerState.SortPartition)
+            clientMap = clientMap + (i -> newWorkerInfo)
+          }
+        }
+      }
 
-      val reply = SortPartitionReply(
-        message = "Please start to transfer partitions"
-        // TODO: give sequence
-      )
-      Future.successful(reply)
+      if (
+        waitWhile(
+          () => !isAllWorkersSameState(WorkerState.SortPartition),
+          100000
+        )
+      ) {
+        NetworkServer.logger.info(
+          "[Sort/Partition] sort/partition completed from " + addr.ip + ":" + addr.port
+        )
+
+        val reply = SortPartitionReply(
+          message = "Please start to transfer partitions"
+        )
+
+        Future.successful(reply)
+      } else {
+        NetworkServer.logger.info(
+          "[Sort/Partition] sort/partition failed from " + addr.ip + ":" + addr.port
+        )
+
+        val reply = SortPartitionReply(
+          message = "Please start to transfer partitions"
+        )
+
+        Future.successful(reply)
+      }
+
     }
 
     override def shuffleReady(req: ShuffleReadyRequest) = {

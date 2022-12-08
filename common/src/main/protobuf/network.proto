@@ -49,7 +49,8 @@ service Network {
     Address addr = 1;
   }
   message SortPartitionReply {
-    string message = 1;
+    ResultType result = 1;
+    string message = 2;
   }
 
   message ShuffleReadyRequest {
@@ -73,6 +74,8 @@ service Network {
   message MergeRequest {
     Address addr = 1;
   }
+
   message MergeReply {
-    string message = 1;
+    ResultType result = 1;
+    string message = 2;
   }

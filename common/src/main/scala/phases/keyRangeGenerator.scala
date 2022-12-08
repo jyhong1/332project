@@ -18,18 +18,15 @@ class keyRangeGenerator(
     val points = for (i <- term to sortedSamples.length - 1 by term) yield i;
     var ranges: Buffer[Range] = Buffer()
 
+    // Generate key ranges.
     for (i <- 0 to points.length) {
-      if (i == 0) {
-        var el = Range("!!!!!!!!!!", sortedSamples(points.head))
-        ranges = ranges :+ el
-      } else if (i == points.length) {
-        var el = Range(sortedSamples(points.last), "~~~~~~~~~~")
-        ranges = ranges :+ el
-      } else {
-        var el = Range(sortedSamples(i), sortedSamples(i + 1))
-        ranges = ranges :+ el
-      }
+      ranges =
+        if (i == 0) ranges :+ Range("!!!!!!!!!!", sortedSamples(points.head))
+        else if (i == points.length)
+          ranges :+ Range(sortedSamples(points.last), "~~~~~~~~~~")
+        else ranges :+ Range(sortedSamples(i), sortedSamples(i + 1))
     }
+
     ranges
   }
   def convertToimmutable[T](sq: Seq[T]): scala.collection.Seq[T] =

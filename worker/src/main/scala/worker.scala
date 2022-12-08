@@ -22,7 +22,7 @@ import shufflenetwork.FileServer
 import shufflenetwork.FileClient
 import scala.concurrent.ExecutionContext
 import java.net.InetAddress
-import util.control.Breaks.{breakable,break}
+import util.control.Breaks.{breakable, break}
 
 object Worker {
   def main(args: Array[String]): Unit = {
@@ -77,43 +77,44 @@ object Worker {
       assert(sortDirs.size > 0)
       partition(sortDirs, samplingReply.ranges)
       client.sortPartitionComplete()
-      //client 정보
+
       // ### Shuffle ###
       val workers = samplingReply.addresses
       val ranges = samplingReply.ranges
       val numWorkers = workers.length
-      val shuffleserver = FileServer(ExecutionContext.global,numWorkers-1)
-      shuffleserver.start() //success true
-      val result = shuffleserver.checkOnline(localhostIP,9000)
+      val shuffleserver = FileServer(ExecutionContext.global, numWorkers - 1)
+      shuffleserver.start() // success true
+      val result = shuffleserver.checkOnline(localhostIP, 9000)
       client.checkShuffleReady(result)
 
-      //client generate
-      
-      var completeness = false
+      // client generate
+
+      var isShuffleComplete = false
       val partitionStoragePath = "./data/partition_real/partition"
 
-      for( i <- 0 to workers.length-1){
-        breakable{
-          if (workers(i).ip == localhostIP){
-            if (i == workers.length-1){
+      for (i <- 0 to workers.length - 1) {
+        breakable {
+          if (workers(i).ip == localhostIP) {
+            if (i == workers.length - 1) {
               break
             }
-          }else{
-            val shuffleclient = FileClient(workers(i).ip,9000)
-            val fileName = partitionStoragePath + (i+1).toString()
-            shuffleclient.sendPartitions(workers(i).ip, fileName)
+          } else {
+            val shuffleclient = FileClient(workers(i).ip, 9000)
+            val filePath = partitionStoragePath + (i + 1).toString()
+            shuffleclient.sendPartition(workers(i).ip, filePath)
             shuffleclient.shutdown()
-            if (i == workers.length-1){
-              completeness = true
+
+            if (i == workers.length - 1) {
+              isShuffleComplete = true
             }
           }
         }
       }
 
-      client.checkShuffleComplete(completeness)
+      client.checkShuffleComplete(isShuffleComplete)
       shuffleserver.stop()
-      
-      mergeFile("./data/partition_real",outputFilePath)
+
+      mergeFile("./data/partition_real", outputFilePath)
 
     } finally {
       client.shutdown()
@@ -203,30 +204,37 @@ object Worker {
       inputDirs: List[String],
       ranges: Seq[protos.network.Range]
   ) = {
-    val allFilePath = getFilePathsFromDir(inputDirs) //read all files from ./data/sort
+    val allFilePath = getFilePathsFromDir(
+      inputDirs
+    ) // read all files from ./data/sort
 
-    //get lines from entire input files
+    // get lines from entire input files
     var part =
       for {
         path <- allFilePath
-        lines <- Source.fromFile(path).getLines 
+        lines <- Source.fromFile(path).getLines
       } yield lines
-    
-    //save partition
+
+    // save partition
     var i = 0
     for (range <- ranges) {
-      i += 1 //partition number starts from 1
+      i += 1 // partition number starts from 1
 
       val partLines =
-        //return if range.from < partLine < range.to
-        for (partLine <- part; if(comparator(range.from, partLine) && comparator(partLine, range.to))) yield partLine 
+        // return if range.from < partLine < range.to
+        for (
+          partLine <- part; if (comparator(range.from, partLine) && comparator(
+            partLine,
+            range.to
+          ))
+        ) yield partLine
 
       val partitionPath = "./data/partition_real"
       val dir = new File(partitionPath)
       if (!dir.exists()) {
         dir.mkdir()
       }
-      
+
       val partitionName = "partition" + i.toString()
       val file = new File(partitionPath + "/" + partitionName)
       file.createNewFile()
@@ -266,14 +274,14 @@ object Worker {
     // println("Sort mergedString\n" + sortedString)
     println("1111111")
     val mergedir = new File(outputFilePath)
-    if (!mergedir.exists()){
+    if (!mergedir.exists()) {
       mergedir.mkdir()
     }
     println("2222222")
 
     val makeMergeFile = new File(outputFilePath + "/result")
     makeMergeFile.createNewFile()
-     println("33333")
+    println("33333")
 
     val path = Paths.get(outputFilePath + "/result")
     Files.write(path, sortedString.getBytes())

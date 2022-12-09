@@ -17,10 +17,16 @@ object Master {
     // should be args len 1 which is master 3(num of workers)
     require(args.length == 1 && args(0).toInt >= 1 && args(0).toInt <= 10)
     val numWorkers = args(0).toInt
-    // TODO: generate input files
 
     val server = NetworkServer(ExecutionContext.global, numWorkers)
-    server.start()
-    server.blockUntilShutdown()
+
+    try {
+      server.start()
+      server.blockUntilShutdown()
+    } catch {
+      case ex: Exception => println(ex)
+    } finally{
+      server.stop()
+    }
   }
 }

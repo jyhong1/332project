@@ -126,7 +126,7 @@ class NetworkClient private (
       )
 
     val addr = Address(localhostIP, port)
-    val request = SortPartitionRequest(Some(addr))
+    val request = ShuffleReadyRequest(Some(addr))
 
     try {
 
@@ -140,7 +140,7 @@ class NetworkClient private (
       case e: StatusRuntimeException =>
         logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus)
 
-        SortPartitionReply(ResultType.FAILURE)
+        ShuffleReadyReply(ResultType.FAILURE)
     }
   }
 
@@ -161,7 +161,7 @@ class NetworkClient private (
       case e: StatusRuntimeException =>
         logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus)
 
-        ShuffleReadyReply(ResultType.FAILURE)
+        ShuffleCompleteReply(ResultType.FAILURE)
     }
   }
 

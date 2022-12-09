@@ -27,7 +27,7 @@ class keyRangeGenerator(
     var ranges: Buffer[Range] = Buffer()
     for (i <- 0 to points.length - 1) {
       if (i == 0) {
-        var el = Range("!!!!!!!!!!", sortedSamples(points.head))
+        var el = Range("          ", sortedSamples(points.head))
         ranges = ranges :+ el
       } else {
         var el = Range(sortedSamples(i), sortedSamples(i + 1))

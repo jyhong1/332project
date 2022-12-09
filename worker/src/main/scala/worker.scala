@@ -117,7 +117,6 @@ object Worker {
           }
         }
       }
-
       /*@@@@@ shuffling phase3:shuffle Complete @@@@@*/
       val shuffleCompleteness = client.checkShuffleComplete(isShuffleComplete)
       if (shuffleCompleteness.result == ResultType.FAILURE) {
@@ -127,7 +126,6 @@ object Worker {
        /*@@@@@ merge phase @@@@@*/
       // mergeHelper.mergeFile(shuffleDirs,outputFilePath,id)
       client.mergeComplete()
-
     } catch{
       case e: Exception => println(e)
     } finally {

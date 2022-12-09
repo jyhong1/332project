@@ -31,7 +31,6 @@ import java.nio.file.{Files, Path, Paths}
 import scala.concurrent.{Promise, Await}
 import scala.concurrent.duration._
 
-
 object NetworkClient {
   def apply(host: String, port: Int): NetworkClient = {
     val channel =
@@ -73,12 +72,14 @@ class NetworkClient private (
     } catch {
       case e: StatusRuntimeException =>
         logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus)
+
         ConnectionReply(ResultType.FAILURE)
     }
   }
 
   def sendSamples(samples: Seq[String]): SamplingReply = {
     logger.info("[Sampling] Try to send samples to Master")
+
     val addr = Address(localhostIP, port)
     val request = SamplingRequest(Some(addr), samples)
 
@@ -87,16 +88,19 @@ class NetworkClient private (
       logger.info(
         "[Sampling] Received sampling response from Master"
       )
+
       response
     } catch {
       case e: StatusRuntimeException =>
         logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus)
+
         SamplingReply(ResultType.FAILURE)
     }
   }
 
   def sortPartitionComplete(): SortPartitionReply = {
     logger.info(
+
       "[Sort/Partition] Try to send finish message to Master server"
     )
 
@@ -120,20 +124,26 @@ class NetworkClient private (
     logger.info(
       "[Shuffle] Try to send Shuffle ready to Master"
       )
+
     val addr = Address(localhostIP, port)
-    val request = ShuffleReadyRequest(Some(addr),state)
+    val request = SortPartitionRequest(Some(addr))
+
     try {
+
       val response = blockingStub.shuffleReady(request)
       logger.info(
         "[shuffle] Connect Status: " + response.result
         )
+
       response
     } catch {
       case e: StatusRuntimeException =>
         logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus)
-        ShuffleReadyReply(ResultType.FAILURE)
+
+        SortPartitionReply(ResultType.FAILURE)
     }
   }
+
 
   def checkShuffleComplete(state: Boolean) : ShuffleCompleteReply = {
     logger.info(
@@ -147,10 +157,11 @@ class NetworkClient private (
         "[Shuffle] complete arrange every partitions at" + addr.ip
         )
       response
-    }catch{
-       case e: StatusRuntimeException =>
+    } catch {
+      case e: StatusRuntimeException =>
         logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus)
-        ShuffleCompleteReply(ResultType.FAILURE)
+
+        ShuffleReadyReply(ResultType.FAILURE)
     }
   }
 
@@ -171,6 +182,7 @@ class NetworkClient private (
       case e: StatusRuntimeException =>
         logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus)
         MergeReply(ResultType.FAILURE)
+
     }
   }
 }

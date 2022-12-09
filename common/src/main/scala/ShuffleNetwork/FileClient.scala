@@ -8,7 +8,7 @@ import shuffle.shuffle.{
     SendPartitionRequest,
     SendPartitionReply
 }
-import io.grpc.{ManagedChannel,StatusRuntimeException,ManagedChannelBuilder}
+import io.grpc.{ManagedChannel, StatusRuntimeException, ManagedChannelBuilder}
 import java.net.InetAddress
 import shuffle.shuffle.ShuffleNetworkGrpc.ShuffleNetworkBlockingStub
 import java.util.logging.{Level, Logger}
@@ -18,21 +18,20 @@ import scala.collection.mutable.Buffer
 import java.io.File
 import common.Utils
 
-object FileClient{
-def apply(host: String, port: Int): FileClient = {
+object FileClient {
+  def apply(host: String, port: Int): FileClient = {
     val channel =
       ManagedChannelBuilder.forAddress(host, port).usePlaintext().build
     val blockingStub = ShuffleNetworkGrpc.blockingStub(channel)
+
     new FileClient(channel, blockingStub)
   }
-    
 }
 
 class FileClient(
     private val channel: ManagedChannel,
     private val blockingStub: ShuffleNetworkBlockingStub
 ) {
-  val id: Int = -1
   val localhostIP = InetAddress.getLocalHost.getHostAddress
   val port = 8000
 
@@ -42,6 +41,7 @@ class FileClient(
   def shutdown(): Unit = {
     channel.shutdown.awaitTermination(5, TimeUnit.SECONDS)
   }
+
 
   def sendPartition(to: String, inputpaths: List[String], outputpath: String): SendPartitionReply = {
     logger.info("[Shuffle] Try to send partition from" + localhostIP + "to" + to)
@@ -58,7 +58,9 @@ class FileClient(
         response
     }catch{
         case e: StatusRuntimeException =>
+
         logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus)
+
         SendPartitionReply(sResultType.FAILURE)
     }
   }

@@ -86,7 +86,8 @@ service Network {
   message MergeRequest {
     Address addr = 1;
   }
+
   message MergeReply {
-    ResultType result =1;
+    ResultType result = 1;
     string message = 2;
   }

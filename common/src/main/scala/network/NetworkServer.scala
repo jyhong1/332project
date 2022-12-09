@@ -116,6 +116,7 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
         NetworkServer.logger.info(
           "[Connection] Input file reply to " + addr.ip + ":" + addr.port + " completed"
         )
+
         Future.successful(reply)
       } else {
         val reply = ConnectionReply(
@@ -126,6 +127,7 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
         NetworkServer.logger.info(
           "[Connection] Input file reply to " + addr.ip + ":" + addr.port + " completed"
         )
+
         Future.successful(reply)
       }
     }
@@ -253,16 +255,31 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
           "[Shuffle Ready] File Server open Request from " + addr.ip + ":" + addr.port + " arrived"
           )
 
-        var totalServerState:Int = 0
-        totalServerState.synchronized{
-          if(req.serverstate == true){
-            totalServerState+=1
+
+      clientMap.synchronized {
+        for (i <- 1 to clientMap.size) {
+          val workerInfo = clientMap(i)
+          if (workerInfo.ip == addr.ip && workerInfo.port == addr.port) {
+            val newWorkerInfo = new WorkerInfo(addr.ip, addr.port)
+            newWorkerInfo.setWorkerState(state = WorkerState.SortPartition)
+            clientMap = clientMap + (i -> newWorkerInfo)
           }
         }
+      }
 
+      if (
+        waitWhile(
+          () => !isAllWorkersSameState(WorkerState.SortPartition),
+          100000
+        )
+      ) {
+        NetworkServer.logger.info(
+          "[Sort/Partition] sort/partition completed from " + addr.ip + ":" + addr.port
+        )
         if (waitWhile(() => totalServerState < numClients, 100000)) {
+
         val reply = ShuffleReadyReply(
-          result = ResultType.SUCCESS,
+          result = ResultType.SUCCESS
         )
 
         NetworkServer.logger.info(
@@ -271,7 +288,7 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
         Future.successful(reply)
       } else {
         val reply = ShuffleReadyReply(
-          result = ResultType.FAILURE,
+          result = ResultType.FAILURE
         )
         NetworkServer.logger.info(
           "[Shuffle Ready] shuffle server at" + addr.ip + "is not opend yet."
@@ -281,9 +298,9 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
     }
 
     override def shuffleComplete(req: ShuffleCompleteRequest) = {
-      val addr = req.addr match{
-          case Some(addr) => addr
-          case None       => Address(ip ="", port =1)// TODO: error handling                
+      val addr = req.addr match {
+        case Some(addr) => addr
+        case None       => Address(ip = "", port = 1) // TODO: error handling
       }
         NetworkServer.logger.info(
           "[Shuffle Complete] Worker " + addr.ip + ":" + addr.port + " completed send partitions"
@@ -295,7 +312,7 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
             shuffleCompleteWorkers+=1
           }
         }
-
+      }
         if (waitWhile(() => shuffleCompleteWorkers < numClients, 100000)) {
         val reply = ShuffleCompleteReply(
           result = ResultType.SUCCESS
@@ -321,7 +338,6 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
         case Some(addr) => addr
         case None       => Address(ip="", port = 1) //TODO
       }
-
       NetworkServer.logger.info(
         "[Merge] Worker " + addr.ip + ":" + addr.port + " completed merge"
       )
@@ -330,12 +346,10 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
       mergeCompleteWorkers.synchronized {
         mergeCompleteWorkers += 1
       }
-
       if (waitWhile(() => mergeCompleteWorkers < numClients, 100000)) {
         val reply = MergeReply(
           result = ResultType.SUCCESS
         )
-
         NetworkServer.logger.info(
           "[Merge] Completed re arrange every items. "
         )
@@ -357,6 +371,7 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
   def waitWhile(condition: () => Boolean, timeout: Int): Boolean = {
     for (i <- 1 to timeout / 50)
       if (!condition()) return true else Thread.sleep(50)
+
     false
   }
 

@@ -24,7 +24,6 @@ class keyRangeGenerator(
     for (i <- remain*(term+1)+term to sortedSamples.length -1 by term){
       points = points:+i
     }
-
     var ranges: Buffer[Range] = Buffer()
     for (i <- 0 to points.length - 1) {
       if (i == 0) {

@@ -45,6 +45,14 @@ object Worker {
     val outputFilePath = System.getProperty("user.dir") + args.last
     val localhostIP = InetAddress.getLocalHost.getHostAddress
 
+    val partitionsPath = System.getProperty("user.dir") + "/data/partitions"
+    val sortPath = System.getProperty("user.dir") + "/data/sort"
+    val shufflePath = System.getProperty("user.dir") + "/data/shuffled"
+
+    Utils.deleteDir(partitionsPath)
+    Utils.deleteDir(sortPath)
+    Utils.deleteDir(shufflePath)
+
     try {
       /*@@@@@ connection phase @@@@@*/
       val connectResponse = client.connect(args(0))

@@ -100,10 +100,18 @@ object Worker {
       for (i <- 0 to workers.length - 1) {
         breakable {
           if (i == id) {
+            val shuffleclient = FileClient(workers(i).ip, 8000)
+            shuffleclient.sendPartition(
+                (i + 1).toString(),
+                shuffleInputFilePaths,
+                shuffleDirs
+            )
+            shuffleclient.shutdown()
             if (i == workers.length - 1) {
               isShuffleComplete = true
               break
             }
+            
           } else {
             val shuffleclient = FileClient(workers(i).ip, 8000)
             try {
@@ -131,7 +139,7 @@ object Worker {
       }
       shuffleserver.stop()
       /*@@@@@ merge phase @@@@@*/
-      // mergeHelper.mergeFile(shuffleDirs,outputFilePath,id)
+      mergeHelper.mergeFileStream(List(shuffleDirs))
       client.mergeComplete()
     } catch {
       case e: Exception => println(e)

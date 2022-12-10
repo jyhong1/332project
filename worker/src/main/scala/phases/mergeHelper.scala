@@ -74,7 +74,6 @@ object mergeHelper {
 
     for (i <- 0 to lines.size - 1) {
       val key = lines(i).take(10)
-      print(key + "\n")
       if (key < min) {
         min = key
         idx = i
@@ -169,9 +168,8 @@ object mergeHelper {
     var files = filePaths
       .map(filePath => Source.fromFile(filePath).getLines().toStream)
 
-    println(files)
     var outputBuffer = new ListBuffer[String]()
-    val outputBufferMaxSize = 1000000 // 100MB
+    val outputBufferMaxSize = 200000 // 20MB
 
     var outputFileNum = 1
     while (!isStreamEmpty(files.toList)) {
@@ -214,6 +212,7 @@ object mergeHelper {
       outputFile.createNewFile()
       val path = Paths.get(outputFile.getPath())
       Files.write(path, outputString.getBytes())
+      outputBuffer.clear()
     }
 
   }

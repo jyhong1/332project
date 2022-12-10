@@ -170,7 +170,9 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
         }
       }
 
-      if (waitWhile(() => !isAllWorkersSameState(WorkerState.Sampling), 100000)) {
+      if (
+        waitWhile(() => !isAllWorkersSameState(WorkerState.Sampling), 100000)
+      ) {
         val keyRanges: Seq[Range] =
           new keyRangeGenerator(req.samples, numClients)
             .generateKeyrange()
@@ -180,7 +182,7 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
           result = ResultType.SUCCESS,
           // message = "Connection complete to master from " + addr.ip
           ranges = keyRanges,
-          addresses = addressList,
+          addresses = addressList
         )
 
         NetworkServer.logger.info(
@@ -207,7 +209,7 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
         case None       => Address(ip = "", port = 1) // TODO: error handling
       }
 
-       clientMap.synchronized {
+      clientMap.synchronized {
         for (i <- 1 to clientMap.size) {
           val workerInfo = clientMap(i)
           if (workerInfo.ip == addr.ip && workerInfo.port == addr.port) {
@@ -247,21 +249,20 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
     }
 
     override def shuffleReady(req: ShuffleReadyRequest) = {
-      val addr = req.addr match{
-          case Some(addr) => addr
-          case None       => Address(ip ="", port =1)// TODO: error handling                
+      val addr = req.addr match {
+        case Some(addr) => addr
+        case None       => Address(ip = "", port = 1) // TODO: error handling
       }
-        NetworkServer.logger.info(
-          "[Shuffle Ready] File Server open Request from " + addr.ip + ":" + addr.port + " arrived"
-          )
-
+      NetworkServer.logger.info(
+        "[Shuffle Ready] File Server open Request from " + addr.ip + ":" + addr.port + " arrived"
+      )
 
       clientMap.synchronized {
         for (i <- 1 to clientMap.size) {
           val workerInfo = clientMap(i)
           if (workerInfo.ip == addr.ip && workerInfo.port == addr.port) {
             val newWorkerInfo = new WorkerInfo(addr.ip, addr.port)
-            newWorkerInfo.setWorkerState(state = WorkerState.SortPartition)
+            newWorkerInfo.setWorkerState(state = WorkerState.ShuffleReady)
             clientMap = clientMap + (i -> newWorkerInfo)
           }
         }
@@ -269,15 +270,10 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
 
       if (
         waitWhile(
-          () => !isAllWorkersSameState(WorkerState.SortPartition),
+          () => !isAllWorkersSameState(WorkerState.ShuffleReady),
           100000
         )
       ) {
-        NetworkServer.logger.info(
-          "[Sort/Partition] sort/partition completed from " + addr.ip + ":" + addr.port
-        )
-        if (waitWhile(() => totalServerState < numClients, 100000)) {
-
         val reply = ShuffleReadyReply(
           result = ResultType.SUCCESS
         )
@@ -302,18 +298,34 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
         case Some(addr) => addr
         case None       => Address(ip = "", port = 1) // TODO: error handling
       }
-        NetworkServer.logger.info(
-          "[Shuffle Complete] Worker " + addr.ip + ":" + addr.port + " completed send partitions"
-          )
-        
-        var shuffleCompleteWorkers:Int = 0
-        shuffleCompleteWorkers.synchronized{
-          if(req.shufflecomplete == true){
-            shuffleCompleteWorkers+=1
+      NetworkServer.logger.info(
+        "[Shuffle Complete] Worker " + addr.ip + ":" + addr.port + " completed send partitions"
+      )
+
+      /*
+      var shuffleCompleteWorkers: Int = 0
+      shuffleCompleteWorkers.synchronized {
+        if (req.shufflecomplete == true) {
+          shuffleCompleteWorkers += 1
+        }
+      }*/
+      clientMap.synchronized {
+        for (i <- 1 to clientMap.size) {
+          val workerInfo = clientMap(i)
+          if (workerInfo.ip == addr.ip && workerInfo.port == addr.port) {
+            val newWorkerInfo = new WorkerInfo(addr.ip, addr.port)
+            newWorkerInfo.setWorkerState(state = WorkerState.ShuffleComplete)
+            clientMap = clientMap + (i -> newWorkerInfo)
           }
         }
       }
-        if (waitWhile(() => shuffleCompleteWorkers < numClients, 100000)) {
+
+      if (
+        waitWhile(
+          () => !isAllWorkersSameState(WorkerState.ShuffleComplete),
+          100000
+        )
+      ) {
         val reply = ShuffleCompleteReply(
           result = ResultType.SUCCESS
         )
@@ -322,26 +334,26 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
           "[Shuffle Complete] Completed re arrange every items. "
         )
         Future.successful(reply)
-        } else {
-          val reply = ShuffleCompleteReply(
-            result = ResultType.FAILURE,
-          )
-          NetworkServer.logger.info(
-            "[Shuffle Complete] shuffle server at" + addr.ip + "is not completed yet."
-          )
-          Future.successful(reply)
-        }
+      } else {
+        val reply = ShuffleCompleteReply(
+          result = ResultType.FAILURE
+        )
+        NetworkServer.logger.info(
+          "[Shuffle Complete] shuffle server at" + addr.ip + "is not completed yet."
+        )
+        Future.successful(reply)
+      }
     }
-    
+
     override def merge(req: MergeRequest) = {
-      val addr = req.addr match{
+      val addr = req.addr match {
         case Some(addr) => addr
-        case None       => Address(ip="", port = 1) //TODO
+        case None       => Address(ip = "", port = 1) // TODO
       }
       NetworkServer.logger.info(
         "[Merge] Worker " + addr.ip + ":" + addr.port + " completed merge"
       )
-      
+
       var mergeCompleteWorkers: Int = 0
       mergeCompleteWorkers.synchronized {
         mergeCompleteWorkers += 1
@@ -365,20 +377,21 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
         )
         Future.successful(reply)
       }
+
     }
-  }
 
-  def waitWhile(condition: () => Boolean, timeout: Int): Boolean = {
-    for (i <- 1 to timeout / 50)
-      if (!condition()) return true else Thread.sleep(50)
+    def waitWhile(condition: () => Boolean, timeout: Int): Boolean = {
+      for (i <- 1 to timeout / 50)
+        if (!condition()) return true else Thread.sleep(50)
 
-    false
-  }
+      false
+    }
 
-  def isAllWorkersSameState(state: WorkerState): Boolean = {
-    var res = true
-    for (i <- 1 to clientMap.size)
-      if (clientMap(i).workerState != state) res = false
-    res
+    def isAllWorkersSameState(state: WorkerState): Boolean = {
+      var res = true
+      for (i <- 1 to clientMap.size)
+        if (clientMap(i).workerState != state) res = false
+      res
+    }
   }
 }

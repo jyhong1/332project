@@ -6,7 +6,8 @@ object WorkerState {
   case object Connected extends WorkerState
   case object Sampling extends WorkerState
   case object SortPartition extends WorkerState
-  case object Shuffle extends WorkerState
+  case object ShuffleReady extends WorkerState
+  case object ShuffleComplete extends WorkerState
   case object Merge extends WorkerState
   case object End extends WorkerState
 }

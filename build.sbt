@@ -44,7 +44,8 @@ lazy val worker = (project in file("worker"))
   .settings(
     name := "worker",
     settings,
-    commonAssemblySettings
+    commonAssemblySettings,
+    libraryDependencies += scalaTest % Test
   )
   .dependsOn(common)
 

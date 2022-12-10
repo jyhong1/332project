@@ -58,7 +58,7 @@ class NetworkClient private (
   def connect(address: String): ConnectionReply = {
     logger.info(
       "[Connection]: Start to connect to Master server " + address
-      )
+    )
 
     val addr = Address(localhostIP, port)
     val request = ConnectionRequest(Some(addr))
@@ -66,7 +66,7 @@ class NetworkClient private (
       val response = blockingStub.connection(request)
       logger.info(
         "[Connection]: " + response.message
-        )
+      )
 
       response
     } catch {
@@ -100,7 +100,6 @@ class NetworkClient private (
 
   def sortPartitionComplete(): SortPartitionReply = {
     logger.info(
-
       "[Sort/Partition] Try to send finish message to Master server"
     )
 
@@ -110,7 +109,7 @@ class NetworkClient private (
       val response = blockingStub.sortPartition(request)
       logger.info(
         "[Sort/Partition]" + response.message
-        )
+      )
 
       response
     } catch {
@@ -120,42 +119,20 @@ class NetworkClient private (
     }
   }
 
-  def checkShuffleReady(state: Boolean): ShuffleReadyReply ={
+  def checkShuffleReady(state: Boolean): ShuffleReadyReply = {
     logger.info(
       "[Shuffle] Try to send Shuffle ready to Master"
-      )
+    )
 
     val addr = Address(localhostIP, port)
-    val request = SortPartitionRequest(Some(addr))
+    val request = ShuffleReadyRequest(Some(addr))
 
     try {
-
       val response = blockingStub.shuffleReady(request)
       logger.info(
         "[shuffle] Connect Status: " + response.result
-        )
-
-      response
-    } catch {
-      case e: StatusRuntimeException =>
-        logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus)
-
-        SortPartitionReply(ResultType.FAILURE)
-    }
-  }
-
-
-  def checkShuffleComplete(state: Boolean) : ShuffleCompleteReply = {
-    logger.info(
-      "[Shuffle] Try to send Master shuffle complete"
       )
-    val addr = Address(localhostIP, port)
-    val request = ShuffleCompleteRequest(Some(addr),state)
-    try{
-      val response = blockingStub.shuffleComplete(request)
-      logger.info(
-        "[Shuffle] complete arrange every partitions at" + addr.ip
-        )
+
       response
     } catch {
       case e: StatusRuntimeException =>
@@ -165,20 +142,40 @@ class NetworkClient private (
     }
   }
 
+  def checkShuffleComplete(state: Boolean): ShuffleCompleteReply = {
+    logger.info(
+      "[Shuffle] Try to send Master shuffle complete"
+    )
+    val addr = Address(localhostIP, port)
+    val request = ShuffleCompleteRequest(Some(addr), state)
+    try {
+      val response = blockingStub.shuffleComplete(request)
+      logger.info(
+        "[Shuffle] complete arrange every partitions at" + addr.ip
+      )
+      response
+    } catch {
+      case e: StatusRuntimeException =>
+        logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus)
+
+        ShuffleCompleteReply(ResultType.FAILURE)
+    }
+  }
+
   def mergeComplete(): MergeReply = {
     logger.info(
       "[Merge] Try to send finish message to Master server"
     )
     val addr = Address(localhostIP, port)
     val request = MergeRequest(Some(addr))
-    try{
+    try {
       val response = blockingStub.merge(request)
       logger.info(
         "[Merge]" + response.message
       )
 
       response
-    }  catch {
+    } catch {
       case e: StatusRuntimeException =>
         logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus)
         MergeReply(ResultType.FAILURE)

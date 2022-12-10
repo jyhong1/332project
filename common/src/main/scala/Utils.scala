@@ -6,6 +6,7 @@ import scala.io.Source
 import shuffle.shuffle.partitionFile
 import protos.network.SamplingReply
 import util.control.Breaks.{breakable,break}
+import scala.reflect.io.Directory
 
 object Utils {
   def comparator(s1: String, s2: String): Boolean = {
@@ -52,6 +53,22 @@ object Utils {
     }
     val result =  new partitionFile(partition)
     result
+  }
+
+  //Get file list from single directory
+  def getFileFromSingleDir(dirName: String): List[File] = {
+    val dir = new File(dirName)
+    if (dir.exists && dir.isDirectory) {
+      dir.listFiles.filter(_.isFile).toList
+    } else {
+      List[File]()
+    }
+  }
+
+  //Delete all files&dirs in single directory
+  def deleteDir(dirName: String): Unit = {
+    val dir = new Directory(new File(dirName))
+    dir.deleteRecursively()
   }
 
   def getId(samplingReply: SamplingReply, localhostIP: String):Int = {

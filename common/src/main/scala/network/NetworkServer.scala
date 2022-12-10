@@ -52,6 +52,8 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
   private[this] var server: Server = null
   private[this] var clientMap: Map[Int, WorkerInfo] = Map()
   private[this] var addressList: Seq[Address] = Seq()
+  private[this] var samples: Seq[String] = Seq()
+  private[this] var mergeCompleteWorkers: Int = 0
 
   private val localhostIP = InetAddress.getLocalHost.getHostAddress
 
@@ -141,7 +143,7 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
         "[Sampling] Sampling Request from " + addr.ip + ":" + addr.port + " arrived"
       )
 
-      var samples: Seq[String] = Seq()
+      
       samples.synchronized {
         samples = samples ++ req.samples
       }
@@ -171,12 +173,13 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
       }
 
       if (
-        waitWhile(() => !isAllWorkersSameState(WorkerState.Sampling), 100000)
+        waitWhile(() => !isAllWorkersSameState(WorkerState.Sampling), 20000)
       ) {
         val keyRanges: Seq[Range] =
-          new keyRangeGenerator(req.samples, numClients)
+          new keyRangeGenerator(samples, numClients)
             .generateKeyrange()
         keyRanges.foreach(println)
+        println("sample length: ",samples.length)
 
         val reply = SamplingReply(
           result = ResultType.SUCCESS,
@@ -354,7 +357,7 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
         "[Merge] Worker " + addr.ip + ":" + addr.port + " completed merge"
       )
 
-      var mergeCompleteWorkers: Int = 0
+      
       mergeCompleteWorkers.synchronized {
         mergeCompleteWorkers += 1
       }

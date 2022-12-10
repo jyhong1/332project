@@ -27,14 +27,21 @@ class keyRangeGenerator(
     }
     var ranges: Buffer[Range] = Buffer()
     for (i <- 0 to points.length - 1) {
+      //println("points length",points.length)
       if (i == 0) {
         var el = Range("          ", sortedSamples(points.head))
         ranges = ranges :+ el
       } else {
-        var el = Range(sortedSamples(i), sortedSamples(i + 1))
+        var el = Range(sortedSamples(points(i-1)), sortedSamples(points(i)))
         ranges = ranges :+ el
       }
     }
+    //println("points")
+    //points.foreach(println)
+    //println("range start")
+    //ranges.foreach(println)
+    //println("range end")
+
     ranges :+ Range(sortedSamples(points.last), "~~~~~~~~~~")
   }
 }

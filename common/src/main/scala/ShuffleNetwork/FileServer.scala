@@ -36,6 +36,7 @@ class FileServer(executionContext: ExecutionContext, numClients: Int) {
   self =>
   private[this] var server: Server = null
   private[this] var clientSet: Map[Int, (String, Int)] = Map()
+  private[this] var count: Int = 0
   private val localhostIP = InetAddress.getLocalHost.getHostAddress
 
   def start(): Unit = {
@@ -93,7 +94,7 @@ class FileServer(executionContext: ExecutionContext, numClients: Int) {
       FileServer.logger.info(
         "[Shuffle] Partition from" + addr.ip + ":" + addr.port + " arrived"
       )
-      var count: Int = 0
+      
       Utils.createdir(req.outputpath)
 
       count.synchronized {

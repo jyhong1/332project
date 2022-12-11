@@ -48,10 +48,12 @@ object Worker {
     val partitionsPath = System.getProperty("user.dir") + "/data/partitions"
     val sortPath = System.getProperty("user.dir") + "/data/sort"
     val shufflePath = System.getProperty("user.dir") + "/data/shuffled"
+    val outputPath = System.getProperty("user.dir") + "/data/output"
 
     Utils.deleteDir(partitionsPath)
     Utils.deleteDir(sortPath)
     Utils.deleteDir(shufflePath)
+    Utils.deleteDir(outputPath)
 
     try {
       /*@@@@@ connection phase @@@@@*/

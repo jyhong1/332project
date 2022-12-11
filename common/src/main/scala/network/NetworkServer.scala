@@ -58,6 +58,7 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
   private[this] var addressList: Seq[Address] = Seq()
   private[this] var samples: Seq[ByteString] = Seq()
   private[this] var keyranges: Seq[Range] = Seq()
+  private[this] var mergeCompleteWorkers: Int = 0
 
   private val localhostIP = InetAddress.getLocalHost.getHostAddress
 
@@ -362,7 +363,6 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
         "[Merge] Worker " + addr.ip + ":" + addr.port + " completed merge"
       )
 
-      var mergeCompleteWorkers: Int = 0
       mergeCompleteWorkers.synchronized {
         mergeCompleteWorkers += 1
       }

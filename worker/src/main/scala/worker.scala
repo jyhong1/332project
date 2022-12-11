@@ -52,6 +52,7 @@ object Worker {
     val outputPath = System.getProperty("user.dir") + args(args.length - 1)
 
     Utils.deleteDir(partitionsPath)
+    Utils.deleteDir("./data/sampled")
     Utils.deleteDir(sortPath)
     Utils.deleteDir(shufflePath)
     Utils.deleteDir(outputPath)

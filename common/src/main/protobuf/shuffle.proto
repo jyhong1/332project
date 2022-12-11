@@ -3,11 +3,7 @@ syntax = "proto3";
 package shuffle;
 
 service ShuffleNetwork {
-    rpc SendPartition(SendPartitionRequest) returns(SendPartitionReply){}
-}
-
-message partitionFile {
-    repeated string partition =1;
+    rpc SendPartition(stream SendPartitionRequest) returns(SendPartitionReply){}
 }
 
 message sAddress {
@@ -25,9 +21,8 @@ enum sResultType {
 */
 message SendPartitionRequest {
     sAddress from = 1; //giver machine address
-    repeated partitionFile partitions = 2; //item contents
-    repeated string filenames = 3;
-    string outputpath = 4;
+    bytes item = 2; //item contents
+    string filename = 3; //filename
 }
 message SendPartitionReply {
     sResultType result = 1;

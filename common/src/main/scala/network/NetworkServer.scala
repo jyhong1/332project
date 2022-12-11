@@ -16,10 +16,12 @@ import protos.network.{
   SortPartitionReply,
   SortPartitionRequest,
   MergeRequest,
-  MergeReply
+  MergeReply,
+  RangeRequest,
+  RangeReply
 }
 import java.util.logging.Logger
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future, Await}
 import io.grpc.{Server, ServerBuilder, Status}
 import io.grpc.stub.StreamObserver;
 import java.net.InetAddress
@@ -32,7 +34,9 @@ import rangegenerator.keyRangeGenerator
 import shufflenetwork.FileServer
 import common.{WorkerState, WorkerInfo}
 import scala.concurrent.duration.Duration
-
+import scala.util.{Success, Failure}
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent._
 object NetworkServer {
   private val logger =
     Logger.getLogger(classOf[NetworkServer].getName)
@@ -52,8 +56,8 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
   private[this] var server: Server = null
   private[this] var clientMap: Map[Int, WorkerInfo] = Map()
   private[this] var addressList: Seq[Address] = Seq()
-  private[this] var samples: Seq[String] = Seq()
-  private[this] var mergeCompleteWorkers: Int = 0
+  private[this] var samples: Seq[ByteString] = Seq()
+  private[this] var keyranges: Seq[Range] = Seq()
 
   private val localhostIP = InetAddress.getLocalHost.getHostAddress
 
@@ -105,7 +109,6 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
       clientMap.synchronized {
         val workerInfo = new WorkerInfo(addr.ip, addr.port)
         clientMap = clientMap + (clientMap.size + 1 -> workerInfo)
-        println(clientMap)
       }
 
       // Waits until all of the workers are connected
@@ -134,82 +137,89 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
       }
     }
 
-    override def sampling(req: SamplingRequest) = {
+    override def sampling(
+        replyObserver: StreamObserver[SamplingReply]
+    ): StreamObserver[SamplingRequest] = {
+      NetworkServer.logger.info("[sample]: Worker tries to send sample")
+
+      new StreamObserver[SamplingRequest] {
+        var workerip: String = ""
+        var workerport: Int = -1
+
+        override def onNext(request: SamplingRequest): Unit = {
+          workerip = request.addr.get.ip
+          workerport = request.addr.get.port
+          samples = samples :+ request.sample
+        }
+        override def onError(t: Throwable): Unit = {
+          NetworkServer.logger.warning("[sample]: Worker failed to send sample")
+          throw t
+        }
+        override def onCompleted(): Unit = {
+          NetworkServer.logger.info("[sample]: Worker done sending sample")
+          replyObserver.onNext(new SamplingReply(ResultType.SUCCESS))
+          replyObserver.onCompleted
+
+          clientMap.synchronized {
+            for (i <- 1 to clientMap.size) {
+              val workerInfo = clientMap(i)
+              if (workerInfo.ip == workerip && workerInfo.port == workerport) {
+                val newWorkerInfo = new WorkerInfo(workerip, workerport)
+                newWorkerInfo.setWorkerState(state = WorkerState.Sampling)
+                clientMap = clientMap + (i -> newWorkerInfo)
+              }
+            }
+          }
+          addressList.synchronized {
+            if (addressList.size != numClients) {
+              for (i <- 1 to clientMap.size) {
+                val workerInfo = clientMap(i)
+                val address =
+                  Address(ip = workerInfo.ip, port = workerInfo.port)
+                addressList = addressList :+ address
+              }
+            }
+          }
+        }
+      }
+    }
+
+    override def range(req: RangeRequest): Future[RangeReply] = {
       val addr = req.addr match {
         case Some(addr) => addr
-        case None       => Address(ip = "", port = 1) // TODO: error handling
+        case None       => Address(ip = "", port = 1)
       }
-      NetworkServer.logger.info(
-        "[Sampling] Sampling Request from " + addr.ip + ":" + addr.port + " arrived"
-      )
-
-      
-      samples.synchronized {
-        samples = samples ++ req.samples
+      keyranges.synchronized {
+        val keyRangesFuture = new keyRangeGenerator(samples, numClients)
+          .generateKeyrange()
+        keyranges = Await.result(keyRangesFuture, Duration.Inf)
       }
 
-      // Makes clientMap of workers
       clientMap.synchronized {
         for (i <- 1 to clientMap.size) {
           val workerInfo = clientMap(i)
           if (workerInfo.ip == addr.ip && workerInfo.port == addr.port) {
             val newWorkerInfo = new WorkerInfo(addr.ip, addr.port)
-            newWorkerInfo.setWorkerState(state = WorkerState.Sampling)
+            newWorkerInfo.setWorkerState(state = WorkerState.Range)
             clientMap = clientMap + (i -> newWorkerInfo)
           }
         }
       }
 
-      // TODO: needs refactoring --> just make the last worker do this != -> ==, remove synchronized
-      // Makes the list of address, which will be sent to the worker
-      addressList.synchronized {
-        if (addressList.size != numClients) {
-          for (i <- 1 to clientMap.size) {
-            val workerInfo = clientMap(i)
-            val address = Address(ip = workerInfo.ip, port = workerInfo.port)
-            addressList = addressList :+ address
-          }
-        }
-      }
-
-      if (
-        waitWhile(() => !isAllWorkersSameState(WorkerState.Sampling), 20000)
-      ) {
-        val keyRanges: Seq[Range] =
-          new keyRangeGenerator(samples, numClients)
-            .generateKeyrange()
-        keyRanges.foreach(println)
-        println("sample length: ",samples.length)
-
-        val reply = SamplingReply(
-          result = ResultType.SUCCESS,
-          // message = "Connection complete to master from " + addr.ip
-          ranges = keyRanges,
-          addresses = addressList
-        )
-
-        NetworkServer.logger.info(
-          "[Sampling] sampling completed from  " + addr.ip + ":" + addr.port
-        )
+      if (waitWhile(() => !isAllWorkersSameState(WorkerState.Range), 100000000)) {
+        NetworkServer.logger.info("[Range] Try to broadcast range ")
+        val reply = RangeReply(ResultType.SUCCESS, keyranges, addressList)
         Future.successful(reply)
       } else {
-        val reply = SamplingReply(
-          result = ResultType.FAILURE
-          // message = "Connection failure to master from " + addr.ip
-        )
-
-        NetworkServer.logger.info(
-          "[Sampling] sampling failed from " + addr.ip + ":" + addr.port
-        )
-        Future.successful(reply)
+        NetworkServer.logger.warning("[Range] range failed")
+        Future.failed(new Exception)
       }
-
     }
 
     override def sortPartition(req: SortPartitionRequest) = {
       val addr = req.addr match {
         case Some(addr) => addr
-        case None       => Address(ip = "", port = 1) // TODO: error handling
+        case None       => Address(ip = "", port = 1) 
       }
 
       clientMap.synchronized {
@@ -226,7 +236,7 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
       if (
         waitWhile(
           () => !isAllWorkersSameState(WorkerState.SortPartition),
-          100000
+          100000000
         )
       ) {
         NetworkServer.logger.info(
@@ -254,7 +264,7 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
     override def shuffleReady(req: ShuffleReadyRequest) = {
       val addr = req.addr match {
         case Some(addr) => addr
-        case None       => Address(ip = "", port = 1) // TODO: error handling
+        case None       => Address(ip = "", port = 1) 
       }
       NetworkServer.logger.info(
         "[Shuffle Ready] File Server open Request from " + addr.ip + ":" + addr.port + " arrived"
@@ -274,7 +284,7 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
       if (
         waitWhile(
           () => !isAllWorkersSameState(WorkerState.ShuffleReady),
-          100000
+          100000000
         )
       ) {
         val reply = ShuffleReadyReply(
@@ -299,19 +309,12 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
     override def shuffleComplete(req: ShuffleCompleteRequest) = {
       val addr = req.addr match {
         case Some(addr) => addr
-        case None       => Address(ip = "", port = 1) // TODO: error handling
+        case None       => Address(ip = "", port = 1) 
       }
       NetworkServer.logger.info(
         "[Shuffle Complete] Worker " + addr.ip + ":" + addr.port + " completed send partitions"
       )
 
-      /*
-      var shuffleCompleteWorkers: Int = 0
-      shuffleCompleteWorkers.synchronized {
-        if (req.shufflecomplete == true) {
-          shuffleCompleteWorkers += 1
-        }
-      }*/
       clientMap.synchronized {
         for (i <- 1 to clientMap.size) {
           val workerInfo = clientMap(i)
@@ -326,7 +329,7 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
       if (
         waitWhile(
           () => !isAllWorkersSameState(WorkerState.ShuffleComplete),
-          100000
+          100000000
         )
       ) {
         val reply = ShuffleCompleteReply(
@@ -351,17 +354,17 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
     override def merge(req: MergeRequest) = {
       val addr = req.addr match {
         case Some(addr) => addr
-        case None       => Address(ip = "", port = 1) // TODO
+        case None       => Address(ip = "", port = 1)
       }
       NetworkServer.logger.info(
         "[Merge] Worker " + addr.ip + ":" + addr.port + " completed merge"
       )
 
-      
+      var mergeCompleteWorkers: Int = 0
       mergeCompleteWorkers.synchronized {
         mergeCompleteWorkers += 1
       }
-      if (waitWhile(() => mergeCompleteWorkers < numClients, 100000)) {
+      if (waitWhile(() => mergeCompleteWorkers < numClients, 100000000)) {
         val reply = MergeReply(
           result = ResultType.SUCCESS
         )
@@ -396,5 +399,36 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
         if (clientMap(i).workerState != state) res = false
       res
     }
+    /*
+    def getkeyranges(): Unit = {
+      if (isAllWorkersSameState(WorkerState.Sampling)) {
+        val f = Future {
+          clientMap.synchronized {
+            for (i <- 1 to clientMap.size) {
+              val workerInfo = clientMap(i)
+              if (workerInfo.ip == workerip && workerInfo.port == workerport) {
+                if (i == 1) {
+                  keyranges = new keyRangeGenerator(samples, numClients)
+                    .generateKeyrange()
+                }
+                val newWorkerInfo = new WorkerInfo(workerip, workerport)
+                newWorkerInfo.setWorkerState(state = WorkerState.Range)
+                clientMap = clientMap + (i -> newWorkerInfo)
+              }
+            }
+          }
+        }
+        f.onComplete {
+          case Success(_) => {
+            NetworkServer.logger.info("[tryPivot] Pivot done successfully")
+          }
+          case Failure(t) => {
+            NetworkServer.logger.info(
+              "[tryPivot] Pivot failed: " + t.getMessage
+            )
+          }
+        }
+      }
+    }*/
   }
 }

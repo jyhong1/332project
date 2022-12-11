@@ -7,8 +7,10 @@
 4. To run worker, type-> 
 sbt "run worker { masterIp:masterPort(Port initialized to 50051) } -I {path of input data} -O {output directory}
 * Ex) If input directory exists in 332project/data1/input, {path of input data} will be /data1/input/ .
+* Ex) master: sbt "run master 4"
+      worker: sbt "run worker -I /data/input1/ /data/input2/ -O /data/output"
 You can add various input files such as /data1/input/ /data2/input/ .
-5. Result is sotred in {output directory} including several files.
+5. Result is sorted in {output directory} including several files.
 
 ## Test list
 1. Test environment : vm servers (eg. 2.2.2.101:50051)
@@ -77,3 +79,4 @@ You can add various input files such as /data1/input/ /data2/input/ .
 5. [Week5](./Weekly%20Progress%20report/Week5.md)
 6. [Week6](./Weekly%20Progress%20report/Week6.md)
 7. [Week7](./Weekly%20Progress%20report/Week7.md)
+8. [Week8](./Weekly%20Progress%20report/Week8.md)

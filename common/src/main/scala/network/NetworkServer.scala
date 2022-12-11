@@ -375,8 +375,8 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
         )
 
         addressList.synchronized {
-          if (addressList(1) == Address(addr.ip, addr.port)) {
-            for (i <- 1 to addressList.size) {
+          if (addressList(0) == Address(addr.ip, addr.port)) {
+            for (i <- 0 to addressList.size - 1) {
               print(addressList(i).ip + ":" + addressList(i).port)
               if (i != addressList.size) print(", ")
             }

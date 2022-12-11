@@ -206,7 +206,9 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
         }
       }
 
-      if (waitWhile(() => !isAllWorkersSameState(WorkerState.Range), 100000000)) {
+      if (
+        waitWhile(() => !isAllWorkersSameState(WorkerState.Range), 100000000)
+      ) {
         NetworkServer.logger.info("[Range] Try to broadcast range ")
         val reply = RangeReply(ResultType.SUCCESS, keyranges, addressList)
         Future.successful(reply)
@@ -219,7 +221,7 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
     override def sortPartition(req: SortPartitionRequest) = {
       val addr = req.addr match {
         case Some(addr) => addr
-        case None       => Address(ip = "", port = 1) 
+        case None       => Address(ip = "", port = 1)
       }
 
       clientMap.synchronized {
@@ -264,7 +266,7 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
     override def shuffleReady(req: ShuffleReadyRequest) = {
       val addr = req.addr match {
         case Some(addr) => addr
-        case None       => Address(ip = "", port = 1) 
+        case None       => Address(ip = "", port = 1)
       }
       NetworkServer.logger.info(
         "[Shuffle Ready] File Server open Request from " + addr.ip + ":" + addr.port + " arrived"
@@ -309,7 +311,7 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
     override def shuffleComplete(req: ShuffleCompleteRequest) = {
       val addr = req.addr match {
         case Some(addr) => addr
-        case None       => Address(ip = "", port = 1) 
+        case None       => Address(ip = "", port = 1)
       }
       NetworkServer.logger.info(
         "[Shuffle Complete] Worker " + addr.ip + ":" + addr.port + " completed send partitions"
@@ -372,6 +374,14 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
           "[Merge] Completed re arrange every items. "
         )
 
+        addressList.synchronized {
+          if (addressList(1) == Address(addr.ip, addr.port)) {
+            for (i <- 1 to addressList.size) {
+              print(addressList(i).ip + ":" + addressList(i).port)
+              if (i != addressList.size) print(", ")
+            }
+          }
+        }
         server.shutdown()
         Future.successful(reply)
       } else {

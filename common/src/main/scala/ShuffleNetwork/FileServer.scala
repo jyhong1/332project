@@ -20,24 +20,27 @@ import java.nio.file.Files
 import java.io.BufferedWriter
 import java.io.FileWriter
 import common.Utils
+import java.io.FileOutputStream
+import io.grpc.stub.StreamObserver
 
 object FileServer {
   private val logger = Logger.getLogger(classOf[FileServer].getName)
   private val port = 8000 /*TBD*/
   def apply(
       executionContext: ExecutionContext,
-      numClients: Int
+      numClients: Int,
+      outputPath: String
   ): FileServer = {
-    new FileServer(executionContext, numClients)
+    new FileServer(executionContext, numClients, outputPath)
   }
 }
 
-class FileServer(executionContext: ExecutionContext, numClients: Int) {
+class FileServer(executionContext: ExecutionContext, numClients: Int, outputPath: String) {
   self =>
   private[this] var server: Server = null
   private[this] var clientSet: Map[Int, (String, Int)] = Map()
-  private[this] var count: Int = 0
   private val localhostIP = InetAddress.getLocalHost.getHostAddress
+  Utils.createdir(outputPath)
 
   def start(): Unit = {
     server = ServerBuilder
@@ -86,50 +89,38 @@ class FileServer(executionContext: ExecutionContext, numClients: Int) {
   }
 
   private class ShuffleNetworkImpl extends ShuffleNetworkGrpc.ShuffleNetwork {
-    override def sendPartition(req: SendPartitionRequest) = {
-      val addr = req.from match {
-        case Some(from) => from
-        case None       => sAddress(ip = "", port = 1)
-      }
-      FileServer.logger.info(
-        "[Shuffle] Partition from" + addr.ip + ":" + addr.port + " arrived"
-      )
-      
-      Utils.createdir(req.outputpath)
+    override def sendPartition(replyObserver: StreamObserver[SendPartitionReply]): StreamObserver[SendPartitionRequest] = {
+      new StreamObserver[SendPartitionRequest] {
+        var workerip:String = ""
+        var workerport:Int = -1
+        var writer: FileOutputStream = null
 
-      count.synchronized {
-        for (i <- 0 to req.partitions.length - 1) {
-          val partition = req.partitions(i)
-          val writer = new BufferedWriter(
-            new FileWriter(req.outputpath + "/" + req.filenames(i))
-          )
-          for (i <- 0 until partition.partition.length) {
-            writer.write(partition.partition(i) + "\n")
+        override def onNext(request: SendPartitionRequest): Unit = {
+          workerip = request.from.get.ip
+          workerport = request.from.get.port
+          val recievedfile = request.filename
+          if (writer == null) {
+            FileServer.logger.info(s"[ShuffleServer]: getting from $workerip with partition $recievedfile")
+            val filename = outputPath + "/" + recievedfile
+            val file = new File(filename)
+            file.createNewFile()
+            writer = new FileOutputStream(file)
           }
-          writer.close()
+          request.item.writeTo(writer)
+          writer.flush
         }
-        FileServer.logger.info(
-          "[Shuffle] received partition from" + addr.ip
-        )
-        count += 1
-      }
 
-      if (Utils.waitWhile(() => count < numClients, 100000)) {
-        val reply = SendPartitionReply(
-          result = sResultType.SUCCESS
-        )
-        FileServer.logger.info(
-          "[Shuffle] Complete to get Partition from " + addr.ip
-        )
-        Future.successful(reply)
-      } else {
-        val reply = SendPartitionReply(
-          result = sResultType.FAILURE
-        )
-        FileServer.logger.info(
-          "[Shuffle] shuffle server failed to get partition"
-        )
-        Future.successful(reply)
+        override def onError(t: Throwable): Unit = {
+          FileServer.logger.warning("[ShuffleServer]: Worker failed to send partition")
+          throw t
+        }
+
+        override def onCompleted(): Unit = {
+          FileServer.logger.info("[ShuffleServer]: Worker done sending partition")
+          writer.close
+          replyObserver.onNext(new SendPartitionReply(sResultType.SUCCESS))
+          replyObserver.onCompleted
+        }
       }
     }
   }

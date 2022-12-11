@@ -3,8 +3,7 @@ package common
 import java.io.File
 import scala.collection.mutable.Buffer
 import scala.io.Source
-import shuffle.shuffle.partitionFile
-import protos.network.SamplingReply
+import protos.network.RangeReply
 import util.control.Breaks.{breakable,break}
 import scala.reflect.io.Directory
 
@@ -45,16 +44,6 @@ object Utils {
     partition
   }
 
-  def getPartitionFile(filename: String): partitionFile = {
-    var partition:Seq[String] = Seq()
-    for (line <- Source.fromFile(filename).getLines())
-    {
-        partition = partition:+line
-    }
-    val result =  new partitionFile(partition)
-    result
-  }
-
   //Get file list from single directory
   def getFileFromSingleDir(dirName: String): List[File] = {
     val dir = new File(dirName)
@@ -71,11 +60,11 @@ object Utils {
     dir.deleteRecursively()
   }
 
-  def getId(samplingReply: SamplingReply, localhostIP: String):Int = {
+  def getId(rangereply: RangeReply, localhostIP: String):Int = {
     var id = 0
     breakable{
-      for (i <- 0 to samplingReply.addresses.length-1){
-        if(samplingReply.addresses(i).ip == localhostIP){
+      for (i <- 0 to rangereply.addresses.length-1){
+        if(rangereply.addresses(i).ip == localhostIP){
           id = i
         }
      }

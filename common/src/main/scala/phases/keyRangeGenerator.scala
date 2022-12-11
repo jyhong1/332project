@@ -3,17 +3,20 @@ package rangegenerator
 import scala.collection.mutable.Buffer
 import protos.network.Range
 import common.Utils
+import com.google.protobuf.ByteString
+import scala.concurrent._
 
 class keyRangeGenerator(
-    allSamples: scala.collection.Seq[String],
+    allSamples: scala.collection.Seq[ByteString],
     numWorkers: Int
 ) {
   val outputSize = 1000000 // 100MB
-  var temp = Utils.convertTomutable(allSamples)
-  var sortedSamples: Seq[String] =
-    temp.sortWith((s1, s2) => Utils.comparator(s1, s2))
+  val temp = allSamples.map(x => x.toStringUtf8)
+  val sortedSamples = temp.sortWith((s1, s2) => Utils.comparator(s1, s2))
 
-  def generateKeyrange(): Seq[Range] = {
+  def generateKeyrange(): Future[Seq[Range]] = {
+    val p = Promise[Seq[Range]]
+
     val numPoints = numWorkers - 1
     val term = sortedSamples.length / numWorkers
     val remain = sortedSamples.length % numWorkers
@@ -27,21 +30,17 @@ class keyRangeGenerator(
     }
     var ranges: Buffer[Range] = Buffer()
     for (i <- 0 to points.length - 1) {
-      //println("points length",points.length)
       if (i == 0) {
         var el = Range("          ", sortedSamples(points.head))
         ranges = ranges :+ el
       } else {
-        var el = Range(sortedSamples(points(i-1)), sortedSamples(points(i)))
+        var el = Range(sortedSamples(points(i - 1)), sortedSamples(points(i)))
         ranges = ranges :+ el
       }
     }
-    //println("points")
-    //points.foreach(println)
-    //println("range start")
-    //ranges.foreach(println)
-    //println("range end")
+    ranges = ranges :+ Range(sortedSamples(points.last), "~~~~~~~~~~")
 
-    ranges :+ Range(sortedSamples(points.last), "~~~~~~~~~~")
+    p.success(ranges)
+    p.future
   }
 }

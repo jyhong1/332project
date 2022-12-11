@@ -4,7 +4,8 @@ package protos;
 
 service Network {
     rpc Connection (ConnectionRequest) returns (ConnectionReply) {}
-    rpc Sampling (SamplingRequest) returns (SamplingReply) {}
+    rpc Sampling (stream SamplingRequest) returns (SamplingReply) {}
+    rpc Range (RangeRequest) returns (RangeReply) {}
     rpc SortPartition (SortPartitionRequest) returns (SortPartitionReply) {}
     rpc ShuffleReady(ShuffleReadyRequest) returns(ShuffleReadyReply){}
     rpc ShuffleComplete(ShuffleCompleteRequest) returns(ShuffleCompleteReply) {}
@@ -41,10 +42,19 @@ service Network {
   */
   message SamplingRequest {
     Address addr = 1;
-    repeated string samples = 2;
-    int32 numitems = 3;
+    bytes sample = 2;
   }
   message SamplingReply {
+    ResultType result = 1;
+
+  }
+  /*
+    get range phase
+  */
+  message RangeRequest {
+    Address addr = 1;
+  }
+  message RangeReply {
     ResultType result = 1;
     repeated Range ranges= 2;
     repeated Address addresses= 3;

@@ -14,12 +14,12 @@ import java.io.FileWriter
 object  sortHelper {
   def sortSingleFile(inputFile: File, outputDir: String) = {
     val inputPath = inputFile.getPath()
-    val inputItems = Utils.getFile(inputPath)
-    var temp = Utils.convertTomutable(inputItems)
-    var sortedItems = temp.sortWith((s1, s2) => Utils.comparator(s1, s2))
+    val inputItems = Source.fromFile(inputPath).getLines().toList
+    val sortedItems = inputItems.sortWith((s1, s2) => Utils.comparator(s1, s2))
     Utils.createdir(outputDir)
     val outputPathString = outputDir + "/" + inputPath.split("/").last
     val writer = new BufferedWriter(new FileWriter(outputPathString))
+    writer.flush()
     for (line <- sortedItems){
         writer.write(line+"\n")
     }

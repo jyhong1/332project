@@ -14,7 +14,7 @@ You can add various input files such as /data1/input/ /data2/input/ .
 
 ## Test list
 1. Test environment : vm servers (eg. 2.2.2.101:50051)
-2. Test with 10 lines, 1MB, 32MB blocks. Total size of blocks will be increased while test.
+2. Test with 1MB, 32MB blocks. Total size of blocks will be increased while test.
 3. Give input of one dir, severl dirs, and repeated dirs.
 4. Verify with valsort.
 

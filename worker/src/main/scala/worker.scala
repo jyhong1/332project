@@ -121,6 +121,10 @@ object Worker {
     } catch {
       case e: Exception => println(e)
     } finally {
+      Utils.deleteDir(partitionsPath)
+      Utils.deleteDir("./data/sampled")
+      Utils.deleteDir(sortPath)
+      Utils.deleteDir(shufflePath)
       client.shutdown()
     }
   }

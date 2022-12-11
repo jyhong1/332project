@@ -379,6 +379,7 @@ class NetworkServer(executionContext: ExecutionContext, numClients: Int) {
             for (i <- 0 to addressList.size - 1) {
               print(addressList(i).ip + ":" + addressList(i).port)
               if (i != addressList.size) print(", ")
+              else print("\n")
             }
           }
         }

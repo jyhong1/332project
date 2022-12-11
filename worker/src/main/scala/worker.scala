@@ -49,7 +49,7 @@ object Worker {
     val partitionsPath = System.getProperty("user.dir") + "/data/partitions"
     val sortPath = System.getProperty("user.dir") + "/data/sort"
     val shufflePath = System.getProperty("user.dir") + "/data/shuffled"
-    val outputPath = System.getProperty("user.dir") + "/data/output"
+    val outputPath = System.getProperty("user.dir") + args(args.length - 1)
 
     Utils.deleteDir(partitionsPath)
     Utils.deleteDir(sortPath)
@@ -112,10 +112,10 @@ object Worker {
       }
       /*@@@@@ shuffling phase3:shuffle Complete @@@@@*/
       val shuffleCompleteness = client.checkShuffleComplete(isShuffleComplete)
-  
+
       shuffleserver.stop()
       /*@@@@@ merge phase @@@@@*/
-      mergeHelper.mergeFileStream(List(shuffleDirs))
+      mergeHelper.mergeFileStream(List(shuffleDirs), outputPath)
       client.mergeComplete()
     } catch {
       case e: Exception => println(e)

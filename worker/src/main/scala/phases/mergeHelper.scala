@@ -163,7 +163,9 @@ object mergeHelper {
     res
   }
 
-  def mergeFileStream(inputDirs: List[String]) = {
+  def mergeFileStream(inputDirs: List[String], outputDirPath: String) = {
+    Utils.createdir(outputDirPath)
+
     val filePaths = getFilePathsFromDir(inputDirs.toList)
     var files = filePaths
       .map(filePath => Source.fromFile(filePath).getLines().toStream)
@@ -197,7 +199,7 @@ object mergeHelper {
       }
 
       val outputString = outputBuffer.mkString("\n")
-      val outputDirPath = "./data/output"
+      // val outputDirPath = "./data/output"
 
       val dir = new File(outputDirPath)
       if (!dir.exists()) {
